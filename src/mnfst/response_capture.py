@@ -59,6 +59,7 @@ def capture_httpx(response: httpx.Response):
     if response.is_stream_consumed:
         return response, response.content[:RESPONSE_BODY_CAP + 1]
     chunks, size = [], 0
+    incomplete = True
     iterator = iter(response.stream)
     try:
         for chunk in iterator:
@@ -67,6 +68,7 @@ def capture_httpx(response: httpx.Response):
             if size > RESPONSE_BODY_CAP:
                 break
         else:
+            incomplete = False
             response.close()
     except Exception:
         # Replay consumed bytes and the original exception to the caller.
@@ -78,7 +80,7 @@ def capture_httpx(response: httpx.Response):
             yield  # pragma: no cover
         iterator = failed()
     restored = httpx.Response(response.status_code, headers=response.headers,
-                              extensions=response.extensions,
+                              extensions={**response.extensions, "mnfst_capture_incomplete": incomplete},
                               stream=ReplayStream(chunks, iterator, response))
     raw = b''.join(chunks)[:RESPONSE_BODY_CAP + 1]
     return restored, _decode(raw, response.headers.get('content-encoding', ''))
@@ -88,6 +90,7 @@ async def capture_httpx_async(response: httpx.Response):
     if response.is_stream_consumed:
         return response, response.content[:RESPONSE_BODY_CAP + 1]
     chunks, size = [], 0
+    incomplete = True
     iterator = response.stream.__aiter__()
     try:
         async for chunk in iterator:
@@ -96,6 +99,7 @@ async def capture_httpx_async(response: httpx.Response):
             if size > RESPONSE_BODY_CAP:
                 break
         else:
+            incomplete = False
             await response.aclose()
     except Exception as exc:
         error = exc
@@ -104,7 +108,7 @@ async def capture_httpx_async(response: httpx.Response):
             yield  # pragma: no cover
         iterator = failed()
     restored = httpx.Response(response.status_code, headers=response.headers,
-                              extensions=response.extensions,
+                              extensions={**response.extensions, "mnfst_capture_incomplete": incomplete},
                               stream=AsyncReplayStream(chunks, iterator, response))
     raw = b''.join(chunks)[:RESPONSE_BODY_CAP + 1]
     return restored, _decode(raw, response.headers.get('content-encoding', ''))
@@ -138,6 +142,7 @@ def capture_requests(response):
         return response, response.content[:RESPONSE_BODY_CAP + 1]
     original = response.raw
     chunks, size = [], 0
+    incomplete = True
     iterator = original.stream(amt=65536, decode_content=False)
     try:
         for chunk in iterator:
@@ -145,12 +150,15 @@ def capture_requests(response):
             size += len(chunk)
             if size > RESPONSE_BODY_CAP:
                 break
+        else:
+            incomplete = False
     except Exception as exc:
         error = exc
         def failed():
             raise error
             yield  # pragma: no cover
         iterator = failed()
+    response._mnfst_capture_incomplete = incomplete
     reader = io.BufferedReader(_Reader(iter(chain(chunks, iterator)), original))
     response.raw = HTTPResponse(body=reader, headers=dict(response.headers),
                                 status=response.status_code, preload_content=False,

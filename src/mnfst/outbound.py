@@ -51,7 +51,7 @@ class _Capture:
 
     def __init__(self, method: str, url: str, headers: Mapping[str, Any],
                  content: Optional[bytes], status_code: int, raw_response: bytes,
-                 response_time_ms: int):
+                 response_time_ms: int, incomplete: bool = False):
         self.method = method or "GET"
         self.url = url
         self.headers = headers
@@ -61,7 +61,7 @@ class _Capture:
         self.payload = heal_payload(
             trace_id=uuid.uuid4().hex, method=self.method, url=url, headers=headers,
             body=self.body, status_code=status_code, response_body=response_body,
-            truncated=truncated, response_time_ms=response_time_ms)
+            truncated=truncated or incomplete, response_time_ms=response_time_ms)
         self.started = time.monotonic()
 
 
@@ -207,7 +207,7 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
                 return response
             capture = _Capture(request.method, str(request.url), request.headers,
                                _safe_request_content(request), response.status_code,
-                               raw, elapsed_ms)
+                               raw, elapsed_ms, response.extensions.get("mnfst_capture_incomplete", False))
             result = sync_api.heal(capture.payload)
             retry = _decide(config, sync_api, capture, result)
             if retry is None:
@@ -218,6 +218,7 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
                 if retried.status_code >= 400:
                     retried, raw = capture_httpx(retried)
                     retry_body, truncated = capped_response_body(raw)
+                    truncated = truncated or retried.extensions.get("mnfst_capture_incomplete", False)
             except Exception as exc:
                 _report(sync_api, result, 0, safe_error_text(exc))
                 _emit(config, capture, result, None)
@@ -248,7 +249,7 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
                 return response
             capture = _Capture(request.method, str(request.url), request.headers,
                                _safe_request_content(request), response.status_code,
-                               raw, elapsed_ms)
+                               raw, elapsed_ms, response.extensions.get("mnfst_capture_incomplete", False))
             result = await async_api.heal(capture.payload)
             retry = _decide(config, async_api, capture, result)
             if retry is None:
@@ -259,6 +260,7 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
                 if retried.status_code >= 400:
                     retried, raw = await capture_httpx_async(retried)
                     retry_body, truncated = capped_response_body(raw)
+                    truncated = truncated or retried.extensions.get("mnfst_capture_incomplete", False)
             except Exception as exc:
                 _report(async_api, result, 0, safe_error_text(exc))
                 _emit(config, capture, result, None)
@@ -323,7 +325,7 @@ def install_requests(config: Config, heal_api: HealApi) -> None:
             content = body if isinstance(body, bytes) else \
                 (body.encode() if isinstance(body, str) else None)
             capture = _Capture(request.method, request.url, request.headers, content,
-                               response.status_code, raw, elapsed_ms)
+                               response.status_code, raw, elapsed_ms, getattr(response, "_mnfst_capture_incomplete", False))
             result = heal_api.heal(capture.payload)
             retry = _decide(config, heal_api, capture, result)
             if retry is None:
@@ -341,6 +343,7 @@ def install_requests(config: Config, heal_api: HealApi) -> None:
                 if retried.status_code >= 400:
                     retried, raw = capture_requests(retried)
                     retry_body, truncated = capped_response_body(raw)
+                    truncated = truncated or getattr(retried, "_mnfst_capture_incomplete", False)
             except Exception as exc:
                 _report(heal_api, result, 0, safe_error_text(exc))
                 _emit(config, capture, result, None)

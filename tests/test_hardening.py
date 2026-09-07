@@ -116,3 +116,19 @@ def test_report_failures_are_observable():
     api.report_outcome('attempt', 200)
     api.join_pending_reports()
     assert api.report_failures == 1
+
+
+def test_incomplete_compressed_capture_is_explicit():
+    import random
+    raw = gzip.compress(random.Random(42).randbytes(200_000))
+    class Chunks(httpx.SyncByteStream):
+        def __iter__(self):
+            for start in range(0, len(raw), 32768):
+                yield raw[start:start + 32768]
+    response, captured = capture_httpx(httpx.Response(
+        400, headers={'content-encoding': 'gzip'}, stream=Chunks()))
+    # A compressed wire prefix can decode to fewer than 64 KiB. It is still
+    # incomplete and must not start a retry while holding a pool connection.
+    assert len(captured) <= 65536
+    assert response.extensions['mnfst_capture_incomplete']
+    response.close()
