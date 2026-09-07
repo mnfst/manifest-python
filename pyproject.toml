@@ -1,0 +1,23 @@
+[project]
+name = "mnfst"
+dynamic = ["version"]
+readme = "README.md"
+description = "Heal failing JSON API requests on the fly."
+requires-python = ">=3.10"
+dependencies = ["httpx>=0.24,<1", "anyio>=4,<5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "requests>=2.31"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mnfst"]
+
+[tool.hatch.version]
+path = "src/mnfst/version.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

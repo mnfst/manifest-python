@@ -1,0 +1,147 @@
+import json
+import time
+
+import httpx
+import pytest
+
+from mnfst.config import resolve_config
+from mnfst.heal_api import DISABLED_BACKOFF_SECONDS, AsyncHealApi, HealApi
+
+CFG = resolve_config(api_key="mnfx_test_k", url="http://phoenix.test")
+PAYLOAD = {"traceId": "t1", "request": {}, "response": {"statusCode": 422}}
+RESULT = {"status": "patched", "issueId": "i1", "healAttemptId": "a1",
+          "healedRequest": {"body": {"reps": 10}}, "operations": []}
+
+
+def capture(responder):
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return responder(request)
+
+    return seen, httpx.MockTransport(handler)
+
+
+def test_heal_success_sends_auth_and_returns_result():
+    seen, transport = capture(lambda r: httpx.Response(200, json=RESULT))
+    api = HealApi(CFG, transport=transport)
+    assert api.heal(PAYLOAD) == RESULT
+    req = seen[0]
+    assert req.url == "http://phoenix.test/v1/heal"
+    assert req.headers["authorization"] == "Bearer mnfx_test_k"
+    assert req.headers["x-mnfst-source"] == "python-sdk"
+    assert req.headers["user-agent"].startswith("mnfst-python/")
+    assert json.loads(req.content) == PAYLOAD
+
+
+def test_heal_returns_none_on_error_status_and_exception():
+    _, transport = capture(lambda r: httpx.Response(500))
+    assert HealApi(CFG, transport=transport).heal(PAYLOAD) is None
+
+    def boom(request):
+        raise httpx.ConnectError("down")
+
+    assert HealApi(CFG, transport=httpx.MockTransport(boom)).heal(PAYLOAD) is None
+
+
+def test_heal_returns_none_on_unserializable_payload():
+    # Serialization happens inside the fail-open try: a payload too deep for the
+    # JSON encoder must degrade to None, never raise into the caller's request.
+    seen, transport = capture(lambda r: httpx.Response(200, json=RESULT))
+    api = HealApi(CFG, transport=transport)
+
+    deep: dict = {}
+    cursor = deep
+    for _ in range(10000):
+        cursor["next"] = {}
+        cursor = cursor["next"]
+
+    assert api.heal(deep) is None
+    assert seen == []  # never reached the wire
+
+    cyclic: dict = {}
+    cyclic["self"] = cyclic
+    assert api.heal(cyclic) is None
+
+
+def test_app_disabled_backs_off():
+    seen, transport = capture(
+        lambda r: httpx.Response(403, json={"error": "project_disabled"}))
+    api = HealApi(CFG, transport=transport)
+    assert api.heal(PAYLOAD) is None
+    assert api.healing_enabled() is False
+    assert api.heal(PAYLOAD) is None
+    assert len(seen) == 1  # second call never hit the wire
+    api._disabled_until = time.monotonic() - 1  # backoff expiry re-enables
+    assert api.healing_enabled() is True
+    assert DISABLED_BACKOFF_SECONDS == 300
+
+
+def test_report_outcome_fire_and_forget():
+    seen, transport = capture(lambda r: httpx.Response(200, json={}))
+    api = HealApi(CFG, transport=transport)
+    api.report_outcome("a1", 200)
+    api.join_pending_reports(timeout=2)
+    req = seen[0]
+    assert req.method == "PATCH"
+    assert req.url == "http://phoenix.test/v1/heal-attempts/a1"
+    assert json.loads(req.content) == {"response": {"statusCode": 200}}
+
+
+def test_report_outcome_carries_the_replay_error():
+    seen, transport = capture(lambda r: httpx.Response(200, json={}))
+    api = HealApi(CFG, transport=transport)
+    api.report_outcome("a1", 0, "ConnectError: down")
+    api.join_pending_reports(timeout=2)
+    assert json.loads(seen[0].content) == {"failure": {"kind": "transport_error", "message": "ConnectError: down"}}
+
+
+def test_report_outcome_prunes_finished_threads():
+    # fire-and-forget reports must not pile up for the life of the process
+    _, transport = capture(lambda r: httpx.Response(200, json={}))
+    api = HealApi(CFG, transport=transport)
+    for index in range(25):
+        api.report_outcome(f"a{index}", 200)
+    for thread in list(api._pending):
+        thread.join(timeout=2)
+    api.report_outcome("a-last", 200)
+    assert len(api._pending) == 1  # the 25 finished ones were swept
+    api.join_pending_reports(timeout=2)
+
+
+@pytest.mark.anyio
+async def test_async_heal():
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        return httpx.Response(200, json=RESULT)
+
+    api = AsyncHealApi(CFG, transport=httpx.MockTransport(handler))
+    assert await api.heal(PAYLOAD) == RESULT
+    assert seen[0].url == "http://phoenix.test/v1/heal"
+
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
+def test_outcome_reports_are_bounded_under_a_flood(monkeypatch):
+    import threading
+    from mnfst import heal_api as heal_api_module
+
+    gate = threading.Event()
+
+    def slow(request):
+        gate.wait(5)
+        return httpx.Response(200, json={})
+
+    monkeypatch.setattr(heal_api_module, "MAX_INFLIGHT_REPORTS", 2)
+    api = HealApi(CFG, transport=httpx.MockTransport(slow))
+    for i in range(10):
+        api.report_outcome(f"a{i}", 200)
+    assert len(api._pending) <= 2  # the rest were dropped, not queued forever
+    gate.set()
+    api.join_pending_reports(timeout=2)
