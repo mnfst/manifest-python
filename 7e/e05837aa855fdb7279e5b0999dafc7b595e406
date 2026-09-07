@@ -1,0 +1,23 @@
+src/mnfst/response_capture.py
+  s_fbb6d00cb77615::t_3107527ea349c5 166-167
+tests/test_outbound_httpx.py
+  s_fbb6d00cb77615::t_8f2373b568c618 73-74
+tests/test_outbound_requests.py
+  s_fbb6d00cb77615::t_eb127025fbe25c 95-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "7ee05837aa855fdb7279e5b0999dafc7b595e406",
+  "prompts": {},
+  "sessions": {
+    "s_fbb6d00cb77615": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a079ce-0d8d-7fc0-84a4-44d3981e3fc2",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
