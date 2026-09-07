@@ -69,6 +69,8 @@ pytest -q
 MNFST_TEST_APP_URL=http://127.0.0.1:5310 pytest -q tests/test_live_app.py
 ```
 
+CI tests Python 3.10, 3.13 and 3.14 and builds the wheel. The live app test runs locally because the app repository is private; cross-repository CI needs separate checkout credentials. Validated against app commit `9ea359279577f99e4058b7600c75889b1a2c5881`.
+
 See [CONTRACT.md](CONTRACT.md) for the wire protocol. Transport failures require the app's explicit `failure` outcome support; they must never be reported as HTTP success.
 
 Adapted from [guillaumegay13/autofix-python](https://github.com/guillaumegay13/autofix-python), source commit `9a82d8235a037392826f982626f49422f3828213`.
