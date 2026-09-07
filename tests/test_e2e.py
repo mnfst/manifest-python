@@ -6,7 +6,7 @@ import time
 import httpx
 import pytest
 
-from mnfst import init
+from mnfst import manifest
 from mnfst.outbound import uninstall_outbound
 from tests.stub_phoenix import StubPhoenix
 from tests.test_outbound_httpx import Provider
@@ -26,7 +26,7 @@ def rig():
 
 def test_full_outbound_heal_loop(rig):
     provider, stub = rig
-    init(key="mnfx_k", url=stub.url)
+    manifest(key="mnfx_k", url=stub.url)
 
     response = httpx.post(f"{provider.url}/v1/generate",
                           json={"model": "m", "temperature": 0.2})
@@ -50,7 +50,7 @@ def test_full_outbound_heal_loop(rig):
 def test_no_patch_serves_original_error(rig):
     provider, stub = rig
     stub.result = None  # no_patch
-    init(key="mnfx_k", url=stub.url)
+    manifest(key="mnfx_k", url=stub.url)
     response = httpx.post(f"{provider.url}/v1/generate",
                           json={"model": "m", "temperature": 0.2})
     assert response.status_code == 400  # the provider's own answer, byte for byte

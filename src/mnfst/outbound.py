@@ -1,6 +1,6 @@
 """Auto-instrumentation of outbound HTTP clients (httpx and requests).
 Patches at TRANSPORT level: one hook per client library, so every client —
-including ones created before mnfst.init() ran — is covered, and redirects,
+including ones created before manifest() ran — is covered, and redirects,
 retries and streaming stay the client's business. The internal_call guard
 keeps the SDK's own Phoenix calls out of the loop.
 
@@ -39,7 +39,7 @@ def flush(timeout: float = 5.0) -> None:
 
 def installed_config() -> Optional[Config]:
     """The config the process is instrumented with, or None. Patching is
-    process-global and one-shot, so a second mnfst.init() with different options
+    process-global and one-shot, so a second manifest() with different options
     cannot take effect — the entry point warns instead of silently ignoring."""
     return _installed_config
 

@@ -13,6 +13,7 @@ import httpx
 import pytest
 import requests
 import mnfst
+from mnfst import manifest
 from mnfst.outbound import uninstall_outbound
 
 
@@ -66,7 +67,7 @@ def test_real_app_outcomes(monkeypatch):
         thread.start()
         upstream = f'http://127.0.0.1:{server.server_port}/sdk{uuid.uuid4().hex}'
         try:
-            mnfst.init(key=key.json()['key'], url=base)
+            manifest(key=key.json()['key'], url=base)
             # A single-slot pool must release the original error before retrying.
             with httpx.Client(limits=httpx.Limits(max_connections=1), timeout=5) as client:
                 assert client.post(upstream + '/sync', json={'limit': 500}).json() == {'limit': 100}

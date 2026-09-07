@@ -3,9 +3,9 @@
 Manifest repairs eligible failed JSON API requests made through `httpx` (sync or async) and `requests`. It sends failure context to your Manifest project, applies the returned repair, and retries once using your original credentials.
 
 ```python
-import mnfst
+from mnfst import manifest
 
-mnfst.init(key="your-project-key")
+manifest(key="your-project-key")
 
 # Your existing httpx / requests calls follow.
 ```
@@ -24,7 +24,7 @@ The package has not yet been released on PyPI. Install `requests` separately if 
 
 ## Configuration
 
-Call `mnfst.init()` once at startup. Arguments override environment variables:
+Call `manifest()` once at startup. Arguments override environment variables:
 
 | Argument | Environment | Default |
 | --- | --- | --- |
@@ -35,11 +35,11 @@ Call `mnfst.init()` once at startup. Arguments override environment variables:
 Use `url="http://127.0.0.1:5310"` with a local Manifest app. The hosted default requires a deployed, compatible app. Changing configuration after initialization requires a process restart.
 
 ```python
-import mnfst
+from mnfst import manifest, flush
 
-mnfst.init(on_heal=lambda event: print(event.heal_status, event.replay_status_code))
+manifest(on_heal=lambda event: print(event.heal_status, event.replay_status_code))
 # Before a short-lived process exits:
-mnfst.flush(timeout=5)
+flush(timeout=5)
 ```
 
 Reports run in background threads. `flush` waits for outstanding reports within one total timeout; it does not guarantee delivery. Normal interpreter exit allows two seconds to flush. Failed or dropped reports emit warnings on the `mnfst` logger. Abrupt termination can lose reports.

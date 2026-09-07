@@ -1,7 +1,7 @@
-"""init(): repair failing API requests on the fly, based on the API's error.
+"""manifest(): repair failing API requests on the fly, based on the API's error.
 
-    import mnfst
-    mnfst.init()  # once, at startup
+    from mnfst import manifest
+    manifest()  # once, at startup
 
 Instruments the process's HTTP clients (httpx and requests). When a call your
 app makes fails, the failing request and the API's error go to Phoenix; if the
@@ -21,12 +21,12 @@ from .heal_api import HealEvent
 from .outbound import flush, install_outbound, installed_config
 from .version import VERSION
 
-__all__ = ["init", "flush", "HealEvent", "VERSION"]
+__all__ = ["manifest", "flush", "HealEvent", "VERSION"]
 
 atexit.register(flush, 2.0)
 
 
-def init(*, key: Optional[str] = None, url: Optional[str] = None,
+def manifest(*, key: Optional[str] = None, url: Optional[str] = None,
             on_heal: Optional[Callable] = None) -> None:
     config = resolve_config(api_key=key, url=url, on_heal=on_heal)
     if config.api_key is None:
