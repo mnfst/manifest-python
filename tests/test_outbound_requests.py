@@ -92,3 +92,12 @@ def test_requests_healed_headers_and_url_apply(rig):
     assert "x-bad" not in headers
     assert headers.get("Authorization") == "Bearer sk"  # credentials ride along untouched
     assert stub.heals[0]["request"]["headers"]["authorization"] == "REDACTED"
+
+
+def test_unhealed_response_preserves_session_cookies(rig):
+    provider, stub = rig
+    stub.result = {"status": "no_patch"}
+    with requests.Session() as client:
+        response = client.post(provider.url + "/v1/generate", json={"temperature": 1})
+        assert response.status_code == 400
+        assert client.cookies.get("error_session") == "retained"

@@ -163,5 +163,7 @@ def capture_requests(response):
     response.raw = HTTPResponse(body=reader, headers=dict(response.headers),
                                 status=response.status_code, preload_content=False,
                                 decode_content=False)
+    # requests extracts Set-Cookie from this stdlib response metadata.
+    response.raw._original_response = getattr(original, "_original_response", None)
     raw = b''.join(chunks)[:RESPONSE_BODY_CAP + 1]
     return response, _decode(raw, response.headers.get('content-encoding', ''))

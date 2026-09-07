@@ -70,6 +70,8 @@ class Provider:
 
             def _reply(self, status, data):
                 self.send_response(status)
+                if status >= 400:
+                    self.send_header("set-cookie", "error_session=retained; Path=/")
                 self.send_header("content-type", "application/json")
                 self.send_header("content-length", str(len(data)))
                 self.end_headers()
