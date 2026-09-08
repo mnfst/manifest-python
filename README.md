@@ -89,3 +89,10 @@ Manifest receives failed request URLs, headers, JSON bodies and error responses.
 ## More
 
 [Configuration, limits & development](docs/guide.md) · [API contract](CONTRACT.md) · [Node.js SDK](https://github.com/mnfst/manifest-node)
+
+## Releases
+
+Use conventional commit titles for pull requests. `feat:` prepares a minor
+version, `fix:` prepares a patch version, and `!` or `BREAKING CHANGE:` prepares
+a major version. GitHub keeps one rolling `chore: release …` pull request; PyPI
+publishing starts only when that release pull request is merged.
