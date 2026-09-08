@@ -1,6 +1,8 @@
 # Manifest for Python
 
 [![CI](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/mnfst?label=PyPI)](https://pypi.org/project/mnfst/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/mnfst?label=PyPI%20downloads)](https://pypi.org/project/mnfst/)
 
 Repair failed JSON API requests automatically. Works with `httpx` and `requests`, for everyday APIs and LLMs alike.
 
