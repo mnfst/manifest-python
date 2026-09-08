@@ -1,0 +1,93 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/mnfst/version.py
+  workflow_dispatch:
+
+concurrency:
+  group: publish-mnfst
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect version bump
+        id: detect
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          current=$(git show "${AFTER_SHA}:src/mnfst/version.py" | sed -n 's/^__version__ = "\([^"]*\)"$/\1/p')
+          if [ -z "$current" ]; then
+            echo "::error::Could not read the current package version."
+            exit 1
+          fi
+          if [ "$MANUAL" = "true" ]; then
+            echo "version=$current" >> "$GITHUB_OUTPUT"
+            echo "Manual dispatch: publishing $current"
+            exit 0
+          fi
+          if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            previous=$(git show "${BEFORE_SHA}:src/mnfst/version.py" 2>/dev/null | sed -n 's/^__version__ = "\([^"]*\)"$/\1/p')
+          else
+            previous=""
+          fi
+          if [ -n "$previous" ] && [ "$previous" != "$current" ]; then
+            echo "version=$current" >> "$GITHUB_OUTPUT"
+            echo "Version bumped: $previous -> $current"
+          else
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "::notice::No version change; nothing to publish."
+          fi
+
+  build:
+    needs: detect
+    if: needs.detect.outputs.version != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+          cache: pip
+      - run: python -m pip install build twine
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m pytest -q
+      - run: python -m build
+      - run: python -m twine check dist/*
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: python-package-distributions
+          path: dist/
+          retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/mnfst
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: python-package-distributions
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@a892a5a61159132606e93a2fa6f4358831b04d26 # v1.14.2

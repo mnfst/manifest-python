@@ -17,12 +17,12 @@ Your API rejects a request → Manifest finds a repair → the SDK retries once,
 
 ### 1. Install
 
-Requires **Python 3.10+**. This preview is not published to PyPI yet; install from GitHub with repository access:
+Requires **Python 3.10+**:
 
 ```sh
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install 'git+https://github.com/mnfst/manifest-python.git'
+python -m pip install mnfst
 ```
 
 On Windows, activate with `.venv\Scripts\activate` instead. The package and import name are **mnfst**. `httpx` is included; install `requests` separately if you use it.

@@ -6,6 +6,11 @@ description = "Heal failing JSON API requests on the fly."
 requires-python = ">=3.10"
 dependencies = ["httpx>=0.24,<1", "anyio>=4,<5"]
 
+[project.urls]
+Homepage = "https://manifest.build"
+Repository = "https://github.com/mnfst/manifest-python"
+Issues = "https://github.com/mnfst/manifest-python/issues"
+
 [project.optional-dependencies]
 dev = ["pytest>=8", "requests>=2.31"]
 
