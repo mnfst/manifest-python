@@ -1,0 +1,19 @@
+README.md
+  s_c09f13f3702a94::t_7106393c562222 4-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "646c8b6bd4d8333dd9093cbf9fed7ef88d5caae1",
+  "prompts": {},
+  "sessions": {
+    "s_c09f13f3702a94": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a08049-9f6a-7593-9529-2962adffcb0e",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
