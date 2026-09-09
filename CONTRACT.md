@@ -15,7 +15,7 @@ The SDK talks to the configured Manifest API using `Authorization: Bearer <proje
 }
 ```
 
-Credential filtering and body limits are described in the README. Capture gates live in `gate.py`; the server owns repair policy.
+Any 4xx response is captured except 401, 402, 403 and 429; those and every 5xx pass through untouched, because auth, billing, rate limiting and server faults are not repaired by editing the request. Credential filtering and body limits are described in the README. Capture gates live in `gate.py`; the server owns repair policy.
 
 A successful heal response may contain `status: patched|unverified`, `healAttemptId`, `operations` and `healedRequest` with `url`, `headers` or `body`. Only these two statuses authorize a retry. No patch, malformed responses and unavailable service return the original error response. HTTP 403 with `{"error":"project_disabled"}` suppresses healing for five minutes.
 

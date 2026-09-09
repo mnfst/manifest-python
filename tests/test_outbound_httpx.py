@@ -49,6 +49,9 @@ class Provider:
                     return self._stream()
                 if route == "/v1/flaky":
                     return self._flaky(raw)
+                if route.startswith("/v1/status/"):  # replies with the status asked for
+                    return self._reply(int(route.rsplit("/", 1)[1]),
+                                       json.dumps({"error": {"message": "as requested"}}).encode())
                 if is_form(self.headers.get("content-type")):
                     # a form provider reads fields, not JSON -- the shape the
                     # SDK must replay in rather than JSON-encoding over it
@@ -63,6 +66,8 @@ class Provider:
                 error = None
                 if route == "/v1/old":
                     return self._reply(404, json.dumps({"error": {"message": "moved"}}).encode())
+                if route == "/v1/conflict":
+                    return self._reply(409, json.dumps({"error": {"message": "conflict"}}).encode())
                 if "x-bad" in self.headers:
                     error = "unsupported header x-bad"
                 elif isinstance(body, dict) and body.get("needs_beta") and \
@@ -468,3 +473,23 @@ def test_json_requests_still_replay_as_json(rig):
     assert response.status_code == 200
     assert provider.requests[-1][1] == b'{"model": "m"}'
     assert header(provider.received[-1][1], "content-type") == "application/json"
+
+
+# --- capture eligibility: any request-side 4xx, not just 400/404/422 ---
+
+def test_a_409_is_captured_and_replayed(rig):
+    provider, stub = rig
+    response = httpx.post(f"{provider.url}/v1/conflict", json={"model": "m", "temperature": 0.2})
+    assert response.status_code == 409  # the route always conflicts
+    assert len(stub.heals) == 1
+    assert stub.heals[0]["response"]["statusCode"] == 409
+    # the heal was applied and replayed, so the route was hit twice
+    assert len([r for r in provider.requests if r[0] == "/v1/conflict"]) == 2
+
+
+def test_forbidden_statuses_never_reach_manifest(rig):
+    provider, stub = rig
+    for status in (401, 402, 403, 429, 500):
+        response = httpx.post(f"{provider.url}/v1/status/{status}", json={"model": "m"})
+        assert response.status_code == status
+    assert stub.heals == []

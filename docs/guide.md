@@ -38,12 +38,12 @@ Reports run in background threads. `flush` waits for outstanding reports within 
 
 ## Verifying the installation
 
-Send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404 or 422. The failure appears in your project's dashboard, and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. In short-lived scripts, call `flush()` before exiting so outcome reports are delivered.
+Send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404, 422 or any other request-side 4xx. The failure appears in your project's dashboard, and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. In short-lived scripts, call `flush()` before exiting so outcome reports are delivered.
 
 ## Behavior and limits
 
 - Standard httpx transports and requests adapters are instrumented process-wide, including existing clients. Custom transports, aiohttp, browsers and other languages are not covered.
-- Eligible HTTP failures are sent to Manifest; successful calls, authentication failures, rate limits and server errors pass through. A network failure before an HTTP response also passes through.
+- Any 4xx is sent to Manifest except 401, 402, 403 and 429. Successful calls, those four, and every 5xx pass through: authentication, billing, rate limiting and server faults are not repaired by editing the request. A network failure before an HTTP response also passes through.
 - Manifest selects repairs. The SDK retries at most once per captured failure. The original error response is returned if healing is unavailable, no repair can be applied, or the retry has a transport error.
 - A successful streaming retry remains streamed. Error capture reads a bounded prefix and preserves the original response bytes for the caller. Error reads use the caller's read timeout; healing adds up to 60 seconds, and the retry uses the caller's timeout.
 - The sync heal worker pool permits eight concurrent calls. Excess calls fail open. Timed-out workers can continue in the background within that bound. Outcome reporting permits 64 concurrent reports per reporter.
