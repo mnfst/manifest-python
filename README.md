@@ -4,97 +4,58 @@
 [![PyPI version](https://img.shields.io/pypi/v/mnfst?label=PyPI)](https://pypi.org/project/mnfst/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/mnfst?label=PyPI%20downloads)](https://pypi.org/project/mnfst/)
 
-Repair failed JSON API requests automatically. Works with `httpx` and `requests`, for everyday APIs and LLMs alike.
+**An API rejects your request. Manifest fixes it and retries. You do nothing.**
+
+```sh
+pip install mnfst
+```
 
 ```python
 from mnfst import manifest
 
-manifest()
+manifest()  # once, at startup
 # Keep making your API calls as usual.
 ```
 
-Your API rejects a request → Manifest finds a repair → the SDK retries once, locally.
+Works with `httpx` (sync and async) and `requests`, for JSON bodies. Python 3.10+. The import name is `mnfst`.
+
+![How Manifest heals a failed request: a 400 reaches Manifest, drops to a patch from the knowledge base or the healing agents, and is retried once, returning a 200 OK](https://raw.githubusercontent.com/mnfst/manifest-python/main/docs/healing-diagram.svg)
 
 ## Setup
 
-### 1. Install
-
-Requires **Python 3.10+**:
-
-```sh
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install mnfst
-```
-
-On Windows, activate with `.venv\Scripts\activate` instead. The package and import name are **mnfst**. `httpx` is included; install `requests` separately if you use it.
-
-### 2. Connect your project
-
-Create a project in your Manifest dashboard and copy the project key shown during setup. In **Project Settings**, turn **Autofix** on to enable repairs.
+1. Create a project in your Manifest dashboard and copy its project key.
+2. Turn on **Autofix** in **Project Settings**.
+3. Set the key:
 
 ```sh
 export MNFST_KEY='your-project-key'
 ```
 
-The SDK defaults to `https://api.manifest.build`. For a local app running on port 5310, also set:
+Call `manifest()` once at startup, before your first request.
 
-```sh
-export MNFST_URL='http://127.0.0.1:5310'
-```
-
-Your server must support the [SDK API contract](CONTRACT.md). The local app must already be running.
-
-### 3. Initialize before your requests
-
-Call `manifest()` once at startup. Save this as `example.py`, replacing the example endpoint and payload with your own:
+## See it work
 
 ```python
 import httpx
 from mnfst import manifest, flush
 
-manifest(
-    on_heal=lambda event: print(
-        "[manifest]", event.heal_status, event.replay_status_code
-    )
+manifest(on_heal=lambda e: print("[manifest]", e.heal_status, e.replay_status_code))
+
+res = httpx.post(
+    "https://api.example.com/orders",
+    json={"limit": 500},  # rejected? Manifest retries with a valid limit
 )
 
-try:
-    response = httpx.post(
-        "https://api.example.com/orders",
-        json={"limit": 500},
-    )
-    print(response.status_code, response.text)
-finally:
-    flush(timeout=5)
+flush(timeout=5)  # short scripts only: wait for reports before exiting
 ```
 
-Run it with `python example.py`. For an API that rejects `limit: 500` and has a matching repair, Manifest can retry with a valid limit. Repairs depend on the API error and available patches.
+## Good to know
 
-The same initialization covers `httpx.AsyncClient` and `requests` calls using their standard transports.
-
-## Check that it works
-
-Send a JSON request that your test API rejects with **400, 404 or 422**. Check the failure in your project's dashboard and the `on_heal` callback for the repair result. A successful request alone does not contact Manifest. `flush()` lets a short script wait for outcome reports before exiting.
-
-## What to expect
-
-- **One retry.** Manifest returns a repair; the SDK sends the corrected request directly to your API.
-- **Original error if healing is unavailable.** A heal call can add up to 60 seconds. If a retry returns an HTTP response, that response reaches your application.
-- **Sync and async.** Standard `httpx` transports and `requests` adapters are covered process-wide. Custom transports and `aiohttp` are not intercepted.
-- **Retry semantics still matter.** Use idempotency keys where needed; a repeated request can repeat side effects.
-
-## Privacy
-
-Manifest receives failed request URLs, headers, JSON bodies and error responses. Known credential fields are masked or withheld, but nested secrets, prompts and business data can still be sent. Enable it only for traffic you permit your Manifest server to process and store.
+- **Retries repeat side effects.** Use idempotency keys on non-idempotent calls.
+- **A heal adds up to 60 s** to a failed request. Successful requests are untouched and never contact Manifest.
+- **Not intercepted:** custom `httpx` transports and `aiohttp`.
+- **Privacy.** Failed URLs, headers, JSON bodies and error responses are sent to Manifest. Known credentials are masked, but nested secrets and business data are not. Enable it only for traffic you allow Manifest to process.
 
 ## More
 
 [Configuration, limits & development](docs/guide.md) · [API contract](CONTRACT.md) · [Node.js SDK](https://github.com/mnfst/manifest-node)
-
-## Releases
-
-Use conventional commit titles for pull requests. `feat:` prepares a minor
-version, `fix:` prepares a patch version, and `!` or `BREAKING CHANGE:` prepares
-a major version. GitHub keeps one rolling `chore: release …` pull request; PyPI
-publishing starts only when that release pull request is merged.
