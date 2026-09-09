@@ -1,11 +1,18 @@
+import pytest
+
 from mnfst.gate import REQUEST_BODY_LIMIT, parse_json_body, should_capture
 
 
-def test_capture_is_request_side_failures_only():
-    for status in (400, 404, 422):
-        assert should_capture(status)
-    for status in (200, 201, 204, 301, 302, 401, 402, 403, 429, 500, 502):
-        assert not should_capture(status)  # auth/billing/rate-limit/5xx: noise
+@pytest.mark.parametrize("status", [400, 404, 405, 409, 410, 413, 415, 422, 428, 451, 499])
+def test_any_request_side_4xx_is_captured(status):
+    assert should_capture(status)
+
+
+@pytest.mark.parametrize("status", [200, 201, 204, 301, 302, 401, 402, 403, 429, 500, 502, 599])
+def test_forbidden_and_non_failure_statuses_pass_through(status):
+    # auth, billing, rate limits and server faults: editing the request
+    # cannot fix any of them, so reporting them is noise
+    assert not should_capture(status)
 
 
 def test_any_json_body_travels():

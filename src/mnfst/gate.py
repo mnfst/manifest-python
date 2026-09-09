@@ -1,9 +1,10 @@
 """Capture any method, but only request-side failures.
 
-400/404/422 are the statuses where the failure is the request's fault —
-the only failures worth reporting and the only ones worth repairing.
-401/403 (auth), 402 (billing), 429 (rate limits) and every 5xx are excluded
-by design: editing the request cannot help, and reporting them is noise.
+A 4xx is the server saying the request was at fault, so 4xx is the range
+worth reporting and repairing — 409, 413, 415 and 451 describe a refused
+request just as 400 and 422 do. Four are forbidden, along with every 5xx:
+401/403 (auth), 402 (billing), 429 (rate limits) and server faults cannot
+be fixed by editing the request, and reporting them is noise.
 
 That status gate is the client's only eligibility rule. Whether a captured
 failure gets retried is the server's call: the SDK retries when Phoenix
@@ -14,12 +15,13 @@ from __future__ import annotations
 import json
 from typing import Any, Optional
 
-GATED_STATUSES = frozenset({400, 404, 422})
+FORBIDDEN_STATUSES = frozenset({401, 402, 403, 429})
 REQUEST_BODY_LIMIT = 262144  # past this a body is a payload, not a form to repair
 
 
 def should_capture(status: int) -> bool:
-    return status in GATED_STATUSES
+    """Any 4xx but the forbidden ones. The upper bound is what excludes 5xx."""
+    return 400 <= status < 500 and status not in FORBIDDEN_STATUSES
 
 
 def parse_json_body(body_bytes: Optional[bytes]) -> Any:
