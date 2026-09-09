@@ -2,6 +2,18 @@
 
 [← Quick start](../README.md)
 
+## Installation
+
+Requires Python 3.10+. In a virtual environment:
+
+```sh
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m pip install mnfst
+```
+
+The package and import name are both `mnfst`. `httpx` is installed as a dependency; install `requests` separately if you use it.
+
 ## Configuration
 
 Call `manifest()` once at startup. Arguments override environment variables:
@@ -12,7 +24,7 @@ Call `manifest()` once at startup. Arguments override environment variables:
 | `url` | `MNFST_URL` | `https://api.manifest.build` |
 | `on_heal` | — | Optional callback receiving a `HealEvent` |
 
-Use `url="http://127.0.0.1:5310"` with a local Manifest app. The hosted default requires a deployed, compatible app. Changing configuration after initialization requires a process restart.
+Use `url="http://127.0.0.1:5310"` with a local Manifest app, which must already be running and support the [SDK API contract](../CONTRACT.md). The hosted default requires a deployed, compatible app. Changing configuration after initialization requires a process restart.
 
 ```python
 from mnfst import manifest, flush
@@ -23,6 +35,10 @@ flush(timeout=5)
 ```
 
 Reports run in background threads. `flush` waits for outstanding reports within one total timeout; it does not guarantee delivery. Normal interpreter exit allows two seconds to flush. Failed or dropped reports emit warnings on the `mnfst` logger. Abrupt termination can lose reports.
+
+## Verifying the installation
+
+Send a JSON request that your test API rejects with 400, 404 or 422. The failure appears in your project's dashboard, and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. In short-lived scripts, call `flush()` before exiting so outcome reports are delivered.
 
 ## Behavior and limits
 
@@ -50,6 +66,8 @@ MNFST_TEST_APP_URL=http://127.0.0.1:5310 pytest -q tests/test_live_app.py
 ```
 
 CI tests Python 3.10, 3.13 and 3.14 and builds the wheel. The live app test runs locally because the app repository is private; cross-repository CI needs separate checkout credentials. Validated against app commit `9ea359279577f99e4058b7600c75889b1a2c5881`.
+
+Use conventional commit titles for pull requests. `feat:` prepares a minor version, `fix:` prepares a patch version, and `!` or `BREAKING CHANGE:` prepares a major version. GitHub keeps one rolling `chore: release …` pull request; PyPI publishing starts only when that release pull request is merged.
 
 See [CONTRACT.md](../CONTRACT.md) for the wire protocol. Transport failures require the app's explicit `failure` outcome support; they must never be reported as HTTP success.
 
