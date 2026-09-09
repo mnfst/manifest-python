@@ -1,0 +1,27 @@
+CONTRACT.md
+  s_32e5f436f83017::t_8b3774add0ccf2 18
+docs/guide.md
+  s_32e5f436f83017::t_12ab2467d03ed3 41,46
+src/mnfst/gate.py
+  s_32e5f436f83017::t_8f0f389f1c5294 3-7,18,23-24
+tests/test_gate.py
+  s_32e5f436f83017::t_40aa871f9c0bb1 1-2,6-15
+tests/test_outbound_httpx.py
+  s_32e5f436f83017::t_0a5d28d3438b8f 52-54,69-70,476-495
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "2e010af34e4712cab85e678357e5de0781989f77",
+  "prompts": {},
+  "sessions": {
+    "s_32e5f436f83017": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bb72f005-81c4-4b24-93c5-210157d4cb56",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
