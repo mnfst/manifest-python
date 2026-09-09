@@ -1,8 +1,9 @@
 import pytest
 import requests
 
+from mnfst.bodies import is_form
 from mnfst.outbound import uninstall_outbound
-from tests.test_outbound_httpx import build_rig, wait_for
+from tests.test_outbound_httpx import build_rig, header, wait_for
 
 
 @pytest.fixture
@@ -101,3 +102,31 @@ def test_unhealed_response_preserves_session_cookies(rig):
         response = client.post(provider.url + "/v1/generate", json={"temperature": 1})
         assert response.status_code == 400
         assert client.cookies.get("error_session") == "retained"
+
+
+# --- form-urlencoded through the requests adapter ---
+
+def test_requests_form_body_is_healed_and_replayed_as_a_form(rig):
+    provider, stub = rig
+    stub.result = {"status": "patched", "issueId": "i1", "healAttemptId": "a1",
+                   "healedRequest": {"body": {"model": "m"}}}
+    response = requests.post(f"{provider.url}/v1/generate",
+                             data={"model": "m", "temperature": "0.2"})
+    assert response.status_code == 200
+    assert stub.heals[0]["request"]["body"] == {"model": "m", "temperature": "0.2"}
+    route, raw = provider.requests[-1]
+    assert raw == b"model=m"
+    headers = provider.received[-1][1]
+    assert is_form(header(headers, "content-type"))
+    assert header(headers, "content-length") == str(len(raw))
+
+
+def test_requests_unparseable_form_body_is_not_replayed(rig):
+    provider, stub = rig
+    response = requests.post(f"{provider.url}/v1/generate", data=b"temperature=%GG",
+                             headers={"content-type": "application/x-www-form-urlencoded"})
+    assert response.status_code == 400
+    assert stub.heals[0]["request"]["body"] is None
+    assert len([r for r in provider.requests if r[0] == "/v1/generate"]) == 1
+    assert wait_for(lambda: stub.outcomes), "no outcome report arrived"
+    assert stub.outcomes[0][1]["failure"]["kind"] == "not_attempted"

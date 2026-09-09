@@ -17,7 +17,7 @@ manifest()  # once, at startup
 # Keep making your API calls as usual.
 ```
 
-Works with `httpx` (sync and async) and `requests`, for JSON bodies. Python 3.10+. The import name is `mnfst`.
+Works with `httpx` (sync and async) and `requests`, for JSON and form-urlencoded bodies. Python 3.10+. The import name is `mnfst`.
 
 ![How Manifest heals a failed request: a 400 reaches Manifest, drops to a patch from the knowledge base or the healing agents, and is retried once, returning a 200 OK](https://raw.githubusercontent.com/mnfst/manifest-python/main/docs/healing-diagram.svg)
 
@@ -54,7 +54,7 @@ flush(timeout=5)  # short scripts only: wait for reports before exiting
 - **Retries repeat side effects.** Use idempotency keys on non-idempotent calls.
 - **A heal adds up to 60 s** to a failed request. Successful requests are untouched and never contact Manifest.
 - **Not intercepted:** custom `httpx` transports and `aiohttp`.
-- **Privacy.** Failed URLs, headers, JSON bodies and error responses are sent to Manifest. Known credentials are masked, but nested secrets and business data are not. Enable it only for traffic you allow Manifest to process.
+- **Privacy.** Failed URLs, headers, JSON or form-urlencoded bodies, and error responses are sent to Manifest. Known credentials are masked, but nested secrets and business data are not. Enable it only for traffic you allow Manifest to process.
 
 ## More
 

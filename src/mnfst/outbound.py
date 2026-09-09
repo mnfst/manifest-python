@@ -9,7 +9,6 @@ healedRequest (url / headers / body) → retry once → report the outcome.
 """
 from __future__ import annotations
 
-import json
 import time
 import uuid
 from typing import Any, Mapping, Optional
@@ -17,12 +16,16 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from .bodies import content_type_of, encode_request_body, parse_request_body
 from .config import Config
-from .gate import parse_json_body, should_capture
+from .gate import should_capture
 from .heal_api import NOT_ATTEMPTED, AsyncHealApi, HealApi, HealEvent, internal_call
 from .merge import merge_healed_body
 from .response_capture import capture_httpx, capture_httpx_async, capture_requests
 from .wire import capped_response_body, heal_payload, safe_error_text, traveling_body
+
+# Methods a retry may carry no body for.
+_BODYLESS = ("GET", "HEAD", "DELETE", "OPTIONS")
 
 _installed = False
 _installed_config: Optional[Config] = None
@@ -56,7 +59,10 @@ class _Capture:
         self.url = url
         self.headers = headers
         self.content = content  # None = the body could not be read (streamed)
-        self.body = parse_json_body(content)
+        self.content_type = content_type_of(headers)
+        # replayable is False when bytes were sent that could not be parsed
+        # into a structure we can re-encode -- reported, never retried.
+        self.body, self.replayable = parse_request_body(content, self.content_type)
         response_body, truncated = capped_response_body(raw_response)
         self.payload = heal_payload(
             trace_id=uuid.uuid4().hex, method=self.method, url=url, headers=headers,
@@ -85,8 +91,8 @@ def _healed_request(result: Optional[dict]) -> Optional[dict]:
 
 def _apply(capture: _Capture, healed: dict) -> Optional[_Retry]:
     """CONTRACT §4: url replaces; headers set/replace, null removes; body
-    merges (objects) or replaces. Returns None when the retry cannot be
-    built (the original body was unreadable and the server sent no body)."""
+    merges (objects) or replaces. Returns None when the retry cannot be built
+    (the original body was unreadable or unparseable, or nothing to send)."""
     url = healed.get("url") or capture.url
     if not _same_origin(url, capture.url):
         return None  # a URL heal may move the path, never the host: the
@@ -97,11 +103,17 @@ def _apply(capture: _Capture, healed: dict) -> Optional[_Retry]:
         if value is not None:
             headers[str(name)] = str(value)
     if "body" in healed:
+        if not capture.replayable:
+            return None  # we could not read what was sent; never invent a replay
         merged = merge_healed_body(capture.body, traveling_body(capture.body), healed["body"])
-        content: Optional[bytes] = json.dumps(merged).encode()
+        if merged is None and capture.method not in _BODYLESS:
+            return None
+        # A form request is replayed as a form, not as JSON under its own
+        # content type; an unencodable body raises and closes the attempt.
+        content: Optional[bytes] = encode_request_body(merged, capture.content_type)
     else:
         content = capture.content
-        if content is None and capture.method not in ("GET", "HEAD", "DELETE", "OPTIONS"):
+        if content is None and capture.method not in _BODYLESS:
             return None
     return _Retry(url, headers, content)
 

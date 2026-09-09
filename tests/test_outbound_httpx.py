@@ -2,9 +2,12 @@ import json
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qsl
 
 import httpx
 import pytest
+
+from mnfst.bodies import is_form
 
 from mnfst.config import resolve_config
 from mnfst.heal_api import AsyncHealApi, HealApi
@@ -46,10 +49,16 @@ class Provider:
                     return self._stream()
                 if route == "/v1/flaky":
                     return self._flaky(raw)
-                try:
-                    body = json.loads(raw or b"{}")
-                except ValueError:
-                    body = {}
+                if is_form(self.headers.get("content-type")):
+                    # a form provider reads fields, not JSON -- the shape the
+                    # SDK must replay in rather than JSON-encoding over it
+                    body = dict(parse_qsl(raw.decode("utf-8", "replace"),
+                                          keep_blank_values=True))
+                else:
+                    try:
+                        body = json.loads(raw or b"{}")
+                    except ValueError:
+                        body = {}
                 provider.received.append((route, dict(self.headers), body))
                 error = None
                 if route == "/v1/old":
@@ -136,6 +145,12 @@ def strip_rig():
     uninstall_outbound()
     stub.stop()
     provider.stop()
+
+
+def header(received_headers, name):
+    """Header lookup by name: httpx sends them lowercased, requests does not."""
+    return next((value for key, value in received_headers.items()
+                 if key.lower() == name), None)
 
 
 def wait_for(predicate, timeout=3.0):
@@ -385,3 +400,71 @@ def test_cross_origin_url_heal_is_refused(rig):
                           headers={"Authorization": "Bearer sk"})
     assert response.status_code == 404  # original served, nothing sent elsewhere
     assert len(provider.received) == 1
+
+
+# --- form-urlencoded: parsed on capture, replayed in the caller's encoding ---
+
+def test_form_body_is_healed_and_replayed_as_a_form(rig):
+    provider, stub = rig
+    stub.result = {"status": "patched", "issueId": "i1", "healAttemptId": "a1",
+                   "healedRequest": {"body": {"model": "m"}}}
+    response = httpx.post(f"{provider.url}/v1/generate",
+                          data={"model": "m", "temperature": "0.2"})
+    assert response.status_code == 200
+    # the fields reached the server, not a null body
+    assert stub.heals[0]["request"]["body"] == {"model": "m", "temperature": "0.2"}
+    # and the replay went out as a form under its own content type
+    route, raw = provider.requests[-1]
+    assert raw == b"model=m"
+    assert is_form(header(provider.received[-1][1], "content-type"))
+    assert provider.received[-1][2] == {"model": "m"}
+
+
+def test_nested_form_keys_survive_the_replay(rig):
+    provider, stub = rig
+    stub.result = {"status": "patched", "issueId": "i1", "healAttemptId": "a1",
+                   "healedRequest": {"body": {"model": "m",
+                                              "line_items": [{"price": "price_123"}]}}}
+    response = httpx.post(
+        f"{provider.url}/v1/generate",
+        content=b"model=m&temperature=0.2&line_items%5B0%5D%5Bprice%5D=price_000",
+        headers={"content-type": "application/x-www-form-urlencoded"})
+    assert response.status_code == 200
+    assert stub.heals[0]["request"]["body"] == {
+        "model": "m", "temperature": "0.2", "line_items": [{"price": "price_000"}]}
+    assert provider.requests[-1][1] == b"model=m&line_items%5B0%5D%5Bprice%5D=price_123"
+
+
+def test_unparseable_form_body_is_reported_but_never_replayed(rig):
+    provider, stub = rig
+    response = httpx.post(f"{provider.url}/v1/generate", content=b"temperature=%GG",
+                          headers={"content-type": "application/x-www-form-urlencoded"})
+    assert response.status_code == 400  # the original error, untouched
+    assert stub.heals[0]["request"]["body"] is None
+    assert len([r for r in provider.requests if r[0] == "/v1/generate"]) == 1
+    assert wait_for(lambda: stub.outcomes), "no outcome report arrived"
+    assert stub.outcomes[0][1]["failure"]["kind"] == "not_attempted"
+
+
+def test_form_request_is_not_replayed_with_a_body_it_cannot_encode(rig):
+    """The server answering a form request with a scalar body has nothing a
+    form can carry — close the attempt rather than send JSON under a form
+    content type."""
+    provider, stub = rig
+    stub.result = {"status": "patched", "issueId": "i1", "healAttemptId": "a1",
+                   "healedRequest": {"body": "model=m"}}
+    response = httpx.post(f"{provider.url}/v1/generate",
+                          data={"model": "m", "temperature": "0.2"})
+    assert response.status_code == 400
+    assert len([r for r in provider.requests if r[0] == "/v1/generate"]) == 1
+    assert wait_for(lambda: stub.outcomes), "no outcome report arrived"
+    assert stub.outcomes[0][1]["failure"]["kind"] == "not_attempted"
+
+
+def test_json_requests_still_replay_as_json(rig):
+    provider, stub = rig
+    response = httpx.post(f"{provider.url}/v1/generate",
+                          json={"model": "m", "temperature": 0.2})
+    assert response.status_code == 200
+    assert provider.requests[-1][1] == b'{"model": "m"}'
+    assert header(provider.received[-1][1], "content-type") == "application/json"
