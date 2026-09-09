@@ -38,7 +38,7 @@ Reports run in background threads. `flush` waits for outstanding reports within 
 
 ## Verifying the installation
 
-Send a JSON request that your test API rejects with 400, 404 or 422. The failure appears in your project's dashboard, and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. In short-lived scripts, call `flush()` before exiting so outcome reports are delivered.
+Send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404 or 422. The failure appears in your project's dashboard, and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. In short-lived scripts, call `flush()` before exiting so outcome reports are delivered.
 
 ## Behavior and limits
 
@@ -47,12 +47,12 @@ Send a JSON request that your test API rejects with 400, 404 or 422. The failure
 - Manifest selects repairs. The SDK retries at most once per captured failure. The original error response is returned if healing is unavailable, no repair can be applied, or the retry has a transport error.
 - A successful streaming retry remains streamed. Error capture reads a bounded prefix and preserves the original response bytes for the caller. Error reads use the caller's read timeout; healing adds up to 60 seconds, and the retry uses the caller's timeout.
 - The sync heal worker pool permits eight concurrent calls. Excess calls fail open. Timed-out workers can continue in the background within that bound. Outcome reporting permits 64 concurrent reports per reporter.
-- Request JSON is limited to 256 KiB and depth 64. Multipart, binary, streamed, oversized and invalid JSON bodies travel as `null`; they are not generally repairable. Response metadata is limited to 64 KiB; truncated errors are reported without retry. Gzip and deflate error prefixes are decoded within that limit; unsupported content encodings provide no body evidence.
+- JSON and `application/x-www-form-urlencoded` request bodies are parsed, including nested form keys such as `line_items[0][price]`. Both are limited to 256 KiB and depth 64. Multipart, binary, streamed, oversized and invalid bodies travel as `null`; they are not generally repairable. A form retry is re-encoded from the parsed structure, so a repeated key such as `expand=a&expand=b` returns as `expand[0]=a&expand[1]=b`. Response metadata is limited to 64 KiB; truncated errors are reported without retry. Gzip and deflate error prefixes are decoded within that limit; unsupported content encodings provide no body evidence.
 - Retries can repeat side effects. Use APIs with safe retry semantics and caller-managed idempotency keys. Existing credentials and idempotency headers are retained unless explicitly changed by the repair. URL repairs must stay on the same origin.
 
 ## Data sent to Manifest
 
-Failed request URLs, headers, JSON bodies and error responses are sent to the configured server. Known credential names in query parameters and headers are masked. Credential-named **top-level** request body fields are withheld and restored for the retry.
+Failed request URLs, headers, JSON or form-urlencoded bodies, and error responses are sent to the configured server. Known credential names in query parameters and headers are masked. Credential-named **top-level** request body fields are withheld and restored for the retry.
 
 This is not general data-loss prevention: nested fields, arbitrary secret names, personal data, prompts and response bodies may still contain sensitive content. Only enable it for traffic you permit Manifest to process and store. The server does not receive the original credential values masked by the SDK.
 
