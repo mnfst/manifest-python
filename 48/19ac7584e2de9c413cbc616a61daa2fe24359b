@@ -1,0 +1,44 @@
+tests/test_outbound_requests.py
+  s_32e5f436f83017::t_55b8a2fcbca81c 4,6,105-132
+docs/guide.md
+  s_d529c6f893ca4d::t_bb5fd3b69c1aa2 41
+  s_32e5f436f83017::t_1cd16538246439 50,55
+CONTRACT.md
+  s_32e5f436f83017::t_578c0037e45a5c 24
+tests/test_bodies.py
+  s_32e5f436f83017::t_9fdc9ccda5e74c 1-99
+src/mnfst/bodies.py
+  s_32e5f436f83017::t_e9ce9d6dac913a 1-227
+tests/test_outbound_httpx.py
+  s_32e5f436f83017::t_4d6dc98f6d9bc6 5,10-11,52-61,150-155,403-470
+src/mnfst/outbound.py
+  s_32e5f436f83017::t_95969283385dab 19,21,27-29,62-65,94-95,106-107,109-113,116
+pyproject.toml
+  s_32e5f436f83017::t_c1c650cdd3a98e 5
+README.md
+  s_32e5f436f83017::t_2609432275349e 20,57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "4819ac7584e2de9c413cbc616a61daa2fe24359b",
+  "prompts": {},
+  "sessions": {
+    "s_32e5f436f83017": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bb72f005-81c4-4b24-93c5-210157d4cb56",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    },
+    "s_d529c6f893ca4d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ce50773a-e522-444c-962b-aa25ff65fc82",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
