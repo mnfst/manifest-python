@@ -1,3 +1,5 @@
+import inspect
+
 import pytest
 import requests
 
@@ -119,6 +121,24 @@ def test_requests_form_body_is_healed_and_replayed_as_a_form(rig):
     headers = provider.received[-1][1]
     assert is_form(header(headers, "content-type"))
     assert header(headers, "content-length") == str(len(raw))
+
+
+def test_patched_send_matches_httpadapter_signature(rig):
+    """CacheControlAdapter.send calls super().send with positional extras."""
+    assert list(inspect.signature(requests.adapters.HTTPAdapter.send).parameters) == [
+        "self", "request", "stream", "timeout", "verify", "cert", "proxies",
+    ]
+
+
+def test_requests_adapter_send_accepts_positional_extras(rig):
+    provider, stub = rig
+    session = requests.Session()
+    prepared = session.prepare_request(
+        requests.Request("POST", f"{provider.url}/v1/generate", json={"model": "m"}))
+    response = session.get_adapter(prepared.url).send(
+        prepared, False, None, True, None, None)
+    assert response.status_code == 200
+    assert stub.heals == []
 
 
 def test_requests_unparseable_form_body_is_not_replayed(rig):

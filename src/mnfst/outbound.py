@@ -315,10 +315,12 @@ def install_requests(config: Config, heal_api: HealApi) -> None:
 
     _originals["requests_send"] = requests.adapters.HTTPAdapter.send
 
-    def patched_send(self, request, **kwargs):
+    def patched_send(self, request, stream=False, timeout=None, verify=True,
+                     cert=None, proxies=None):
         original = _originals["requests_send"]
         started = time.monotonic()
-        response = original(self, request, **kwargs)
+        response = original(self, request, stream=stream, timeout=timeout,
+                            verify=verify, cert=cert, proxies=proxies)
         # `.elapsed` is only stamped by Session.send, after the adapter
         # returns — so time the call here instead.
         elapsed_ms = int((time.monotonic() - started) * 1000)
@@ -350,7 +352,8 @@ def install_requests(config: Config, heal_api: HealApi) -> None:
                 rebuilt.body = retry.content
                 if retry.content is not None:
                     rebuilt.headers["content-length"] = str(len(retry.content))
-                retried = original(self, rebuilt, **kwargs)
+                retried = original(self, rebuilt, stream=stream, timeout=timeout,
+                                   verify=verify, cert=cert, proxies=proxies)
                 retry_body, truncated = None, False
                 if retried.status_code >= 400:
                     retried, raw = capture_requests(retried)
