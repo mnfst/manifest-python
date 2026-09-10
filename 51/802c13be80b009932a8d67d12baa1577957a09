@@ -1,0 +1,23 @@
+tests/test_outbound_requests.py
+  s_1436ba8f400481::t_07b3a3bc97d224 1-2
+  s_1436ba8f400481::t_2c6f2119cf0297 126-143
+src/mnfst/outbound.py
+  s_1436ba8f400481::t_ac1d65a5802140 318-319,322-323
+  s_1436ba8f400481::t_e1b55cdfa14f76 355-356
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "51802c13be80b009932a8d67d12baa1577957a09",
+  "prompts": {},
+  "sessions": {
+    "s_1436ba8f400481": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f75be3686ffe7JhGrcYfYY7Bgo",
+        "model": "auto"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
