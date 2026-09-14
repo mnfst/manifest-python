@@ -1,0 +1,29 @@
+src/mnfst/outbound.py
+  s_f0ae0327db6a73::t_5d57c47d144e42 1,171-173,175-185,195,198-199,212-215,217-220,222-223,235,246,249,266-267,277,288,291,308-309,316-320
+src/mnfst/response_capture.py
+  s_f0ae0327db6a73::t_812478fd8e155c 10,17-21,24-28,30-32,34-35,37-39,41-45,47-54,72,96-98,103,124-126
+docs/guide.md
+  s_f0ae0327db6a73::t_8168a2b25b59f6 45
+pyproject.toml
+  s_f0ae0327db6a73::t_8168a2b25b59f6 15
+tests/test_outbound_httpx2.py
+  s_f0ae0327db6a73::t_cc58449f329a65 1-149
+README.md
+  s_f0ae0327db6a73::t_8168a2b25b59f6 20,54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b355d6dd9c3aa4862eb891df69787f4fefc3e3e8",
+  "prompts": {},
+  "sessions": {
+    "s_f0ae0327db6a73": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4df21493-36dc-423b-bcaf-fcfa19f6d776",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
