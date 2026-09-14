@@ -1,4 +1,4 @@
-__version__ = "0.2.0"
+__version__ = "1.0.0"
 
 # Backward-compatible public name. The release value lives only above so Hatch,
 # package metadata, and the SDK's User-Agent cannot drift independently.

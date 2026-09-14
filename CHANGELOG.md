@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.0](https://github.com/mnfst/manifest-python/compare/v0.2.0...v1.0.0) (2026-09-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* mnfst.flush is no longer exported.
+
+### Features
+
+* instrument httpx2 transports ([103e640](https://github.com/mnfst/manifest-python/commit/103e6404ce713923f343e2632bc491fe9e408f0d))
+* instrument httpx2 transports ([230fa9f](https://github.com/mnfst/manifest-python/commit/230fa9f5ab693ed2892bc2967bed9794779a643e))
+
+
+### Code Refactoring
+
+* remove flush from the SDK ([88874af](https://github.com/mnfst/manifest-python/commit/88874afeffddb1397a5eff348398987fa89c8c44))
+
 ## [0.2.0](https://github.com/mnfst/manifest-python/compare/v0.1.0...v0.2.0) (2026-09-10)
 
 
