@@ -1,0 +1,44 @@
+tests/test_outbound_httpx.py
+  s_3ce65fd13a54ec::t_4b63d9c55caf76 14
+README.md
+  s_3ce65fd13a54ec::t_3ee36153dfa8e5 40
+docs/guide.md
+  s_3ce65fd13a54ec::t_7a16382e3b88c8 30,35
+  s_3ce65fd13a54ec::t_8e3c37efa344db 39
+tests/test_hardening.py
+  s_3ce65fd13a54ec::t_d10e85c2f59f33 118
+  s_3ce65fd13a54ec::t_351f17dc5dd7dd 13-14
+tests/test_stub_contract.py
+  s_3ce65fd13a54ec::t_db9a014a558f07 3
+  s_3ce65fd13a54ec::t_1134903cadccb6 25
+tests/helpers.py
+  s_3ce65fd13a54ec::t_75643348f2b91a 1-12
+src/mnfst/__init__.py
+  s_3ce65fd13a54ec::t_c2b53dfff3c427 20,23
+tests/test_live_app.py
+  s_3ce65fd13a54ec::t_dd0d716485a909 81
+  s_3ce65fd13a54ec::t_10aa7f7440d36b 17
+tests/test_entrypoint.py
+  s_3ce65fd13a54ec::t_16a25cbdcc1703 58
+tests/test_heal_api.py
+  s_3ce65fd13a54ec::t_356e0eea5e442c 9
+  s_3ce65fd13a54ec::t_dbd433f4301e46 97
+  s_3ce65fd13a54ec::t_a67108659284cd 147-148
+  s_3ce65fd13a54ec::t_d6c725119a72da 86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "88874afeffddb1397a5eff348398987fa89c8c44",
+  "prompts": {},
+  "sessions": {
+    "s_3ce65fd13a54ec": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f60de3df8ffeCZAiv8gM645J7b",
+        "model": "auto"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
