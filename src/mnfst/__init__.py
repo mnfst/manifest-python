@@ -12,18 +12,15 @@ tries) is server-side configuration, editable in the dashboard.
 """
 from __future__ import annotations
 
-import atexit
 import warnings
 from typing import Callable, Optional
 
 from .config import resolve_config
 from .heal_api import HealEvent
-from .outbound import flush, install_outbound, installed_config
+from .outbound import install_outbound, installed_config
 from .version import VERSION
 
-__all__ = ["manifest", "flush", "HealEvent", "VERSION"]
-
-atexit.register(flush, 2.0)
+__all__ = ["manifest", "HealEvent", "VERSION"]
 
 
 def manifest(*, key: Optional[str] = None, url: Optional[str] = None,

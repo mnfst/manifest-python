@@ -10,7 +10,8 @@ from mnfst.config import resolve_config
 from mnfst.heal_api import HealApi, AsyncHealApi
 from mnfst.response_capture import capture_httpx, capture_requests
 from mnfst.wire import capped_response_body
-from tests.test_outbound_httpx import rig, wait_for
+from tests.helpers import wait_for
+from tests.test_outbound_httpx import rig
 
 
 @pytest.fixture
@@ -114,8 +115,7 @@ def test_report_failures_are_observable():
     api = HealApi(resolve_config(api_key='test', url='http://test'),
                   transport=httpx.MockTransport(lambda _: httpx.Response(400)))
     api.report_outcome('attempt', 200)
-    api.join_pending_reports()
-    assert api.report_failures == 1
+    assert wait_for(lambda: api.report_failures == 1)
 
 
 def test_incomplete_compressed_capture_is_explicit():

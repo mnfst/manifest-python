@@ -6,6 +6,7 @@ import pytest
 
 from mnfst.config import resolve_config
 from mnfst.heal_api import DISABLED_BACKOFF_SECONDS, AsyncHealApi, HealApi
+from tests.helpers import wait_for
 
 CFG = resolve_config(api_key="mnfx_test_k", url="http://phoenix.test")
 PAYLOAD = {"traceId": "t1", "request": {}, "response": {"statusCode": 422}}
@@ -82,7 +83,7 @@ def test_report_outcome_fire_and_forget():
     seen, transport = capture(lambda r: httpx.Response(200, json={}))
     api = HealApi(CFG, transport=transport)
     api.report_outcome("a1", 200)
-    api.join_pending_reports(timeout=2)
+    assert wait_for(lambda: seen)
     req = seen[0]
     assert req.method == "PATCH"
     assert req.url == "http://phoenix.test/v1/heal-attempts/a1"
@@ -93,7 +94,7 @@ def test_report_outcome_carries_the_replay_error():
     seen, transport = capture(lambda r: httpx.Response(200, json={}))
     api = HealApi(CFG, transport=transport)
     api.report_outcome("a1", 0, "ConnectError: down")
-    api.join_pending_reports(timeout=2)
+    assert wait_for(lambda: seen)
     assert json.loads(seen[0].content) == {"failure": {"kind": "transport_error", "message": "ConnectError: down"}}
 
 
@@ -107,7 +108,6 @@ def test_report_outcome_prunes_finished_threads():
         thread.join(timeout=2)
     api.report_outcome("a-last", 200)
     assert len(api._pending) == 1  # the 25 finished ones were swept
-    api.join_pending_reports(timeout=2)
 
 
 @pytest.mark.anyio
@@ -144,4 +144,5 @@ def test_outcome_reports_are_bounded_under_a_flood(monkeypatch):
         api.report_outcome(f"a{i}", 200)
     assert len(api._pending) <= 2  # the rest were dropped, not queued forever
     gate.set()
-    api.join_pending_reports(timeout=2)
+    for thread in list(api._pending):
+        thread.join(timeout=2)

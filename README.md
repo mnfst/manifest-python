@@ -37,7 +37,7 @@ Call `manifest()` once at startup, before your first request.
 
 ```python
 import httpx
-from mnfst import manifest, flush
+from mnfst import manifest
 
 manifest(on_heal=lambda e: print("[manifest]", e.heal_status, e.replay_status_code))
 
@@ -45,8 +45,6 @@ res = httpx.post(
     "https://api.example.com/orders",
     json={"limit": 500},  # rejected? Manifest retries with a valid limit
 )
-
-flush(timeout=5)  # short scripts only: wait for reports before exiting
 ```
 
 ## Good to know
