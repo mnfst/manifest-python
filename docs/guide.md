@@ -27,18 +27,16 @@ Call `manifest()` once at startup. Arguments override environment variables:
 Use `url="http://127.0.0.1:5310"` with a local Manifest app, which must already be running and support the [SDK API contract](../CONTRACT.md). The hosted default requires a deployed, compatible app. Changing configuration after initialization requires a process restart.
 
 ```python
-from mnfst import manifest, flush
+from mnfst import manifest
 
 manifest(on_heal=lambda event: print(event.heal_status, event.replay_status_code))
-# Before a short-lived process exits:
-flush(timeout=5)
 ```
 
-Reports run in background threads. `flush` waits for outstanding reports within one total timeout; it does not guarantee delivery. Normal interpreter exit allows two seconds to flush. Failed or dropped reports emit warnings on the `mnfst` logger. Abrupt termination can lose reports.
+Outcome reports run in background threads and are best effort. Failed or dropped reports emit warnings on the `mnfst` logger. Abrupt termination can lose reports.
 
 ## Verifying the installation
 
-Send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404, 422 or any other request-side 4xx. The failure appears in your project's dashboard, and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. In short-lived scripts, call `flush()` before exiting so outcome reports are delivered.
+Send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404, 422 or any other request-side 4xx. The failure appears in your project's dashboard, and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. Outcome reports are asynchronous, so a short-lived script may exit before the report is delivered.
 
 ## Behavior and limits
 

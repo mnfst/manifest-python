@@ -55,4 +55,4 @@ def test_second_install_with_same_config_is_quiet():
 def test_exports():
     assert mnfst_pkg.HealEvent is HealEvent
     assert not hasattr(mnfst_pkg, "autofix")
-    assert mnfst_pkg.__all__ == ["manifest", "flush", "HealEvent", "VERSION"]
+    assert mnfst_pkg.__all__ == ["manifest", "HealEvent", "VERSION"]

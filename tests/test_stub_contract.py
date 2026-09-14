@@ -1,5 +1,6 @@
 from mnfst.config import resolve_config
 from mnfst.heal_api import HealApi
+from tests.helpers import wait_for
 from tests.stub_phoenix import StubPhoenix
 
 PAYLOAD = {"traceId": "t1",
@@ -21,7 +22,7 @@ def test_heal_roundtrip_against_real_socket():
         assert api.heal(PAYLOAD)["healedRequest"] == {"body": {"reps": 10}}
 
         api.report_outcome("a1", 200)
-        api.join_pending_reports()
+        assert wait_for(lambda: stub.outcomes)
         assert stub.outcomes == [("a1", {"response": {"statusCode": 200}})]
 
 

@@ -182,13 +182,6 @@ class HealApi:
             self._pending.append(thread)
             thread.start()
 
-    def join_pending_reports(self, timeout: float = 5.0) -> None:
-        deadline = time.monotonic() + timeout
-        with self._pending_lock:
-            pending = list(self._pending)
-        for thread in pending:
-            thread.join(max(0, deadline - time.monotonic()))
-
 
 class AsyncHealApi:
     def __init__(self, config: Config, transport: Optional[httpx.AsyncBaseTransport] = None):
@@ -237,6 +230,3 @@ class AsyncHealApi:
     def report_outcome(self, heal_attempt_id: str, retry_status_code: int,
                        error: Any = None, truncated: bool = False) -> None:
         self._sync.report_outcome(heal_attempt_id, retry_status_code, error, truncated)
-
-    def join_pending_reports(self, timeout: float = 5.0) -> None:
-        self._sync.join_pending_reports(timeout)

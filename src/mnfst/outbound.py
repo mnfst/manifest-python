@@ -30,14 +30,6 @@ _BODYLESS = ("GET", "HEAD", "DELETE", "OPTIONS")
 _installed = False
 _installed_config: Optional[Config] = None
 _originals: dict = {}
-_reporters: list = []
-
-
-def flush(timeout: float = 5.0) -> None:
-    """Wait up to timeout seconds total for outstanding outcome reports."""
-    deadline = time.monotonic() + max(0, timeout)
-    for api in _reporters:
-        api.join_pending_reports(max(0, deadline - time.monotonic()))
 
 
 def installed_config() -> Optional[Config]:
@@ -196,7 +188,6 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
     async_api = async_heal_api or AsyncHealApi(config)
     _installed = True
     _installed_config = config
-    _reporters[:] = [sync_api, async_api]
 
     _originals["httpx_sync"] = httpx.HTTPTransport.handle_request
     _originals["httpx_async"] = httpx.AsyncHTTPTransport.handle_async_request

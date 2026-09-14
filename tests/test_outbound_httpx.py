@@ -1,6 +1,5 @@
 import json
 import threading
-import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qsl
 
@@ -12,6 +11,7 @@ from mnfst.bodies import is_form
 from mnfst.config import resolve_config
 from mnfst.heal_api import AsyncHealApi, HealApi
 from mnfst.outbound import _Retry, _rebuild, install_outbound, uninstall_outbound
+from tests.helpers import wait_for
 from tests.stub_phoenix import StubPhoenix
 
 
@@ -156,15 +156,6 @@ def header(received_headers, name):
     """Header lookup by name: httpx sends them lowercased, requests does not."""
     return next((value for key, value in received_headers.items()
                  if key.lower() == name), None)
-
-
-def wait_for(predicate, timeout=3.0):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        if predicate():
-            return True
-        time.sleep(0.02)
-    return False
 
 
 def test_sync_client_heals(rig):

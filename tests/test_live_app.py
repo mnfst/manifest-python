@@ -12,9 +12,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import httpx
 import pytest
 import requests
-import mnfst
 from mnfst import manifest
 from mnfst.outbound import uninstall_outbound
+from tests.helpers import wait_for
 
 
 def test_real_app_outcomes(monkeypatch):
@@ -78,8 +78,7 @@ def test_real_app_outcomes(monkeypatch):
             assert requests.post(upstream + '/requests', json={'limit': 500}, timeout=5).status_code == 200
             assert httpx.post(upstream + '/ineffective', json={'limit': 500}).status_code == 400
             assert httpx.post(upstream + '/transport', json={'limit': 500}).status_code == 400
-            mnfst.flush(10)
-            assert len(reports) == 5, json.dumps(reports)
+            assert wait_for(lambda: len(reports) == 5, timeout=10), json.dumps(reports)
             assert all(code == 200 for code, _ in reports)
             assert sorted(body['status'] for _, body in reports) == ['failed', 'inconclusive', 'succeeded', 'succeeded', 'succeeded']
         finally:
