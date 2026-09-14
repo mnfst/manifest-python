@@ -7,37 +7,51 @@ from __future__ import annotations
 
 import io
 import zlib
+from types import ModuleType
 from typing import Iterator
 
 import httpx
 
 from .wire import RESPONSE_BODY_CAP
 
-
-class ReplayStream(httpx.SyncByteStream):
-    def __init__(self, chunks, iterator, original):
-        self.chunks, self.iterator, self.original = chunks, iterator, original
-
-    def __iter__(self):
-        yield from self.chunks
-        yield from self.iterator
-
-    def close(self):
-        self.original.close()
+# httpx and httpx2 are separate packages with the same API. A restored
+# response must be built from the package that produced the original, and
+# its stream must subclass that package's byte stream, so the replay
+# classes are made per module.
+_streams: dict = {}
 
 
-class AsyncReplayStream(httpx.AsyncByteStream):
-    def __init__(self, chunks, iterator, original):
-        self.chunks, self.iterator, self.original = chunks, iterator, original
+def replay_streams(mod: ModuleType = httpx):
+    if mod.__name__ not in _streams:
+        class ReplayStream(mod.SyncByteStream):
+            def __init__(self, chunks, iterator, original):
+                self.chunks, self.iterator, self.original = chunks, iterator, original
 
-    async def __aiter__(self):
-        for chunk in self.chunks:
-            yield chunk
-        async for chunk in self.iterator:
-            yield chunk
+            def __iter__(self):
+                yield from self.chunks
+                yield from self.iterator
 
-    async def aclose(self):
-        await self.original.aclose()
+            def close(self):
+                self.original.close()
+
+        class AsyncReplayStream(mod.AsyncByteStream):
+            def __init__(self, chunks, iterator, original):
+                self.chunks, self.iterator, self.original = chunks, iterator, original
+
+            async def __aiter__(self):
+                for chunk in self.chunks:
+                    yield chunk
+                async for chunk in self.iterator:
+                    yield chunk
+
+            async def aclose(self):
+                await self.original.aclose()
+
+        _streams[mod.__name__] = (ReplayStream, AsyncReplayStream)
+    return _streams[mod.__name__]
+
+
+ReplayStream, AsyncReplayStream = replay_streams(httpx)
 
 
 def _decode(raw: bytes, encoding: str) -> bytes:
@@ -55,7 +69,7 @@ def _decode(raw: bytes, encoding: str) -> bytes:
         return b''
 
 
-def capture_httpx(response: httpx.Response):
+def capture_httpx(response, mod: ModuleType = httpx):
     if response.is_stream_consumed:
         return response, response.content[:RESPONSE_BODY_CAP + 1]
     chunks, size = [], 0
@@ -79,14 +93,14 @@ def capture_httpx(response: httpx.Response):
             raise error
             yield  # pragma: no cover
         iterator = failed()
-    restored = httpx.Response(response.status_code, headers=response.headers,
-                              extensions={**response.extensions, "mnfst_capture_incomplete": incomplete},
-                              stream=ReplayStream(chunks, iterator, response))
+    restored = mod.Response(response.status_code, headers=response.headers,
+                            extensions={**response.extensions, "mnfst_capture_incomplete": incomplete},
+                            stream=replay_streams(mod)[0](chunks, iterator, response))
     raw = b''.join(chunks)[:RESPONSE_BODY_CAP + 1]
     return restored, _decode(raw, response.headers.get('content-encoding', ''))
 
 
-async def capture_httpx_async(response: httpx.Response):
+async def capture_httpx_async(response, mod: ModuleType = httpx):
     if response.is_stream_consumed:
         return response, response.content[:RESPONSE_BODY_CAP + 1]
     chunks, size = [], 0
@@ -107,9 +121,9 @@ async def capture_httpx_async(response: httpx.Response):
             raise error
             yield  # pragma: no cover
         iterator = failed()
-    restored = httpx.Response(response.status_code, headers=response.headers,
-                              extensions={**response.extensions, "mnfst_capture_incomplete": incomplete},
-                              stream=AsyncReplayStream(chunks, iterator, response))
+    restored = mod.Response(response.status_code, headers=response.headers,
+                            extensions={**response.extensions, "mnfst_capture_incomplete": incomplete},
+                            stream=replay_streams(mod)[1](chunks, iterator, response))
     raw = b''.join(chunks)[:RESPONSE_BODY_CAP + 1]
     return restored, _decode(raw, response.headers.get('content-encoding', ''))
 

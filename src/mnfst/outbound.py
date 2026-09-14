@@ -1,4 +1,4 @@
-"""Auto-instrumentation of outbound HTTP clients (httpx and requests).
+"""Auto-instrumentation of outbound HTTP clients (httpx, httpx2 and requests).
 Patches at TRANSPORT level: one hook per client library, so every client —
 including ones created before manifest() ran — is covered, and redirects,
 retries and streaming stay the client's business. The internal_call guard
@@ -160,9 +160,21 @@ def _decide(config: Config, api, capture: _Capture, result: Optional[dict]) -> O
     return retry
 
 
-# --- httpx -------------------------------------------------------------------
+# --- httpx and httpx2 ----------------------------------------------------------
+# httpx2 is the same API published under a second import name; both are
+# patched when present, so a client from either package is covered.
 
-def _safe_request_content(request: httpx.Request) -> Optional[bytes]:
+def _httpx_modules() -> list:
+    modules = [httpx]
+    try:
+        import httpx2
+    except ImportError:
+        return modules
+    modules.append(httpx2)
+    return modules
+
+
+def _safe_request_content(request) -> Optional[bytes]:
     """A streamed or iterator request body raises RequestNotRead on `.content`.
     Capture without it; a retry then needs the server to supply a body."""
     try:
@@ -172,11 +184,11 @@ def _safe_request_content(request: httpx.Request) -> Optional[bytes]:
     return content if isinstance(content, bytes) else None
 
 
-def _rebuild(request: httpx.Request, retry: _Retry) -> httpx.Request:
+def _rebuild(request, retry: _Retry, mod=httpx):
     # Extensions carry the per-request timeout (and the caller's trace hooks);
     # dropping them would silently retry under the client default.
-    return httpx.Request(request.method, retry.url, headers=retry.headers,
-                         content=retry.content, extensions=dict(request.extensions))
+    return mod.Request(request.method, retry.url, headers=retry.headers,
+                       content=retry.content, extensions=dict(request.extensions))
 
 
 def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
@@ -188,12 +200,18 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
     async_api = async_heal_api or AsyncHealApi(config)
     _installed = True
     _installed_config = config
+    for mod in _httpx_modules():
+        _install_httpx(mod, config, sync_api, async_api)
+    install_requests(config, sync_api)
 
-    _originals["httpx_sync"] = httpx.HTTPTransport.handle_request
-    _originals["httpx_async"] = httpx.AsyncHTTPTransport.handle_async_request
 
-    def patched_sync(self, request: httpx.Request) -> httpx.Response:
-        original = _originals["httpx_sync"]
+def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealApi) -> None:
+    sync_key, async_key = f"{mod.__name__}_sync", f"{mod.__name__}_async"
+    _originals[sync_key] = mod.HTTPTransport.handle_request
+    _originals[async_key] = mod.AsyncHTTPTransport.handle_async_request
+
+    def patched_sync(self, request):
+        original = _originals[sync_key]
         started = time.monotonic()
         response = original(self, request)
         elapsed_ms = int((time.monotonic() - started) * 1000)
@@ -205,7 +223,7 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
             if not should_capture(response.status_code) or not sync_api.healing_enabled():
                 return response
             try:
-                response, raw = capture_httpx(response)
+                response, raw = capture_httpx(response, mod)
             except Exception:
                 return response
             capture = _Capture(request.method, str(request.url), request.headers,
@@ -216,10 +234,10 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
             if retry is None:
                 return response
             try:
-                retried = original(self, _rebuild(request, retry))
+                retried = original(self, _rebuild(request, retry, mod))
                 retry_body, truncated = None, False
                 if retried.status_code >= 400:
-                    retried, raw = capture_httpx(retried)
+                    retried, raw = capture_httpx(retried, mod)
                     retry_body, truncated = capped_response_body(raw)
                     truncated = truncated or retried.extensions.get("mnfst_capture_incomplete", False)
             except Exception as exc:
@@ -236,8 +254,8 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
         except Exception:
             return response  # nothing in here may reach the caller
 
-    async def patched_async(self, request: httpx.Request) -> httpx.Response:
-        original = _originals["httpx_async"]
+    async def patched_async(self, request):
+        original = _originals[async_key]
         started = time.monotonic()
         response = await original(self, request)
         elapsed_ms = int((time.monotonic() - started) * 1000)
@@ -247,7 +265,7 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
             if not should_capture(response.status_code) or not async_api.healing_enabled():
                 return response
             try:
-                response, raw = await capture_httpx_async(response)
+                response, raw = await capture_httpx_async(response, mod)
             except Exception:
                 return response
             capture = _Capture(request.method, str(request.url), request.headers,
@@ -258,10 +276,10 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
             if retry is None:
                 return response
             try:
-                retried = await original(self, _rebuild(request, retry))
+                retried = await original(self, _rebuild(request, retry, mod))
                 retry_body, truncated = None, False
                 if retried.status_code >= 400:
-                    retried, raw = await capture_httpx_async(retried)
+                    retried, raw = await capture_httpx_async(retried, mod)
                     retry_body, truncated = capped_response_body(raw)
                     truncated = truncated or retried.extensions.get("mnfst_capture_incomplete", False)
             except Exception as exc:
@@ -278,17 +296,19 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
         except Exception:
             return response
 
-    httpx.HTTPTransport.handle_request = patched_sync
-    httpx.AsyncHTTPTransport.handle_async_request = patched_async
-    install_requests(config, sync_api)
+    mod.HTTPTransport.handle_request = patched_sync
+    mod.AsyncHTTPTransport.handle_async_request = patched_async
 
 
 def uninstall_outbound() -> None:
     global _installed, _installed_config
     if not _installed:
         return
-    httpx.HTTPTransport.handle_request = _originals["httpx_sync"]
-    httpx.AsyncHTTPTransport.handle_async_request = _originals["httpx_async"]
+    for mod in _httpx_modules():
+        sync_key, async_key = f"{mod.__name__}_sync", f"{mod.__name__}_async"
+        if sync_key in _originals:
+            mod.HTTPTransport.handle_request = _originals.pop(sync_key)
+            mod.AsyncHTTPTransport.handle_async_request = _originals.pop(async_key)
     uninstall_requests()
     _installed = False
     _installed_config = None
