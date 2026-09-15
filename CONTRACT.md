@@ -47,4 +47,6 @@ Each captured failure permits one retry. A retry response, including another fai
 
 HTTP status must be 200–599. Failure messages are capped at 512 UTF-8 bytes after credential filtering. HTTP status zero is not a wire status. Transport failures and unattempted retries are inconclusive evidence; neither can verify or invalidate a patch. The server determines the verdict from the raw evidence, with the first accepted report winning.
 
+A tool-call capture uses `url: mcp://<tool>`, `statusCode: 422` and `body: {"error": <error text>}`, with the tool arguments as the request body. The outcome of a retried tool call reports 200 on success or 422 with the new error, and a patch the model never retried reports `not_attempted`.
+
 Reports are best effort, bounded, and observable through logger warnings. The SDK sends the failed retry's raw body so the app can distinguish recurrence from a newly revealed issue. It does not assert `succeeded` or `failed` itself.

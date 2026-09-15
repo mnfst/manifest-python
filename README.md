@@ -47,6 +47,16 @@ res = httpx.post(
 )
 ```
 
+## Hermes Agent
+
+```sh
+pip install mnfst                  # into the Hermes environment
+hermes plugins enable manifest
+export MNFST_KEY='your-project-key'
+```
+
+Restart Hermes. A rejected tool call is sent to Manifest, and the model is asked to call the tool again; the retry runs with the corrected arguments.
+
 ## Good to know
 
 - **Agent tools are covered.** A tool that calls an API through one of these clients is healed with nothing to wrap.

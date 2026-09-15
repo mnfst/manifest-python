@@ -48,6 +48,10 @@ Send a JSON or `application/x-www-form-urlencoded` request that your test API re
 - JSON and `application/x-www-form-urlencoded` request bodies are parsed, including nested form keys such as `line_items[0][price]`. Both are limited to 256 KiB and depth 64. Multipart, binary, streamed, oversized and invalid bodies travel as `null`; they are not generally repairable. A form retry is re-encoded from the parsed structure, so a repeated key such as `expand=a&expand=b` returns as `expand[0]=a&expand[1]=b`. Response metadata is limited to 64 KiB; truncated errors are reported without retry. Gzip and deflate error prefixes are decoded within that limit; unsupported content encodings provide no body evidence.
 - Retries can repeat side effects. Use APIs with safe retry semantics and caller-managed idempotency keys. Existing credentials and idempotency headers are retained unless explicitly changed by the repair. URL repairs must stay on the same origin.
 
+## Tool-call repair
+
+The `mnfst.hermes` plugin repairs rejected tool calls in [Hermes Agent](https://github.com/NousResearch/hermes-agent): the failed result is captured as `mcp://<tool>`, and when a patch comes back the tool result gains a line telling the model to call the tool again, which runs with the corrected arguments. One heal and one retry per failure, and every step fails open. `MNFST_HEAL_TIMEOUT` bounds the heal round trip in seconds (default 20). `MNFST_HEAL_HTTP=0` skips the transport-level `manifest()` install that the plugin otherwise performs for tools making HTTP calls in process.
+
 ## Data sent to Manifest
 
 Failed request URLs, headers, JSON or form-urlencoded bodies, and error responses are sent to the configured server. Known credential names in query parameters and headers are masked. Credential-named **top-level** request body fields are withheld and restored for the retry.
