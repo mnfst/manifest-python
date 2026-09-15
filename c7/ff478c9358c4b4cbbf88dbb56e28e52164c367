@@ -1,0 +1,31 @@
+CONTRACT.md
+  s_f0ae0327db6a73::t_4887eadcba40ee 50-51
+README.md
+  s_f0ae0327db6a73::t_28985b58a04bf3 50-59
+docs/guide.md
+  s_f0ae0327db6a73::t_46d5829f07cacd 51-54
+pyproject.toml
+  s_f0ae0327db6a73::t_0ad832171d3d53 14-16
+src/mnfst/hermes/__init__.py
+  s_f0ae0327db6a73::t_80af26d96e1da6 1-82
+src/mnfst/hermes/heal.py
+  s_f0ae0327db6a73::t_2487b51c5bd183 1-114
+tests/test_hermes.py
+  s_f0ae0327db6a73::t_a956144d255d76 1-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c7ff478c9358c4b4cbbf88dbb56e28e52164c367",
+  "prompts": {},
+  "sessions": {
+    "s_f0ae0327db6a73": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4df21493-36dc-423b-bcaf-fcfa19f6d776",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
