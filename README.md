@@ -37,7 +37,7 @@ pip install mnfst
 ```python
 from mnfst import manifest
 
-manifest()  # once, at startup
+manifest()  # Once, at startup.
 # Keep making your API calls as usual.
 ```
 
