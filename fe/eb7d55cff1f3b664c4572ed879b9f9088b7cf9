@@ -1,0 +1,37 @@
+tests/stub_phoenix.py
+  s_7ac3e5c015ab6b::t_db558512df9f19 50-54
+  s_7ac3e5c015ab6b::t_e0a8373935ef05 15-17
+tests/test_cli.py
+  s_7ac3e5c015ab6b::t_43217cd99b9d7b 32-34,56-65
+  s_7ac3e5c015ab6b::t_0def7fe6a6322f 12-13
+  s_7ac3e5c015ab6b::t_121ca4430f93c6 146-163
+  s_7ac3e5c015ab6b::t_a4859fc6776181 66-67
+docs/guide.md
+  s_7ac3e5c015ab6b::t_b44b31f23c621d 53-68
+src/mnfst/doctor.py
+  s_7ac3e5c015ab6b::t_50c9faab288c42 1-136
+tests/test_doctor.py
+  s_7ac3e5c015ab6b::t_e81938abb3e49c 2-114
+  s_7ac3e5c015ab6b::t_7fc039a7b42661 1
+src/mnfst/__main__.py
+  s_7ac3e5c015ab6b::t_fbdd5838d3e829 60,70-75
+  s_7ac3e5c015ab6b::t_5af517e6885732 25,27-29,35
+README.md
+  s_7ac3e5c015ab6b::t_1eaa14025034c9 66-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "feeb7d55cff1f3b664c4572ed879b9f9088b7cf9",
+  "prompts": {},
+  "sessions": {
+    "s_7ac3e5c015ab6b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f4f2148fbffeJJzs9a8qNWntQj",
+        "model": "auto"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
