@@ -2,7 +2,7 @@
 
 <img src="./docs/github-sdk.png" alt="Manifest SDK Architecture" style="border-radius: 16px;">
 
-# Manifest for Python
+# Manifest for Python {.no-border}
 
 **Turn 🔴 4xx API errors into 🟢 successful requests in real time.**
 
@@ -11,8 +11,6 @@
 [![PyPI downloads](https://img.shields.io/pypi/dm/mnfst?label=PyPI%20downloads)](https://pypi.org/project/mnfst/)
 
 </div>
-
----
 
 ## What is Manifest
 
