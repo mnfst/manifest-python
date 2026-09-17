@@ -1,0 +1,23 @@
+CONTRACT.md
+  s_440e3eb4da6e01::t_4f33eedca29617 24
+tests/test_outbound_httpx.py
+  s_440e3eb4da6e01::t_e85bf49719c390 28,37-46,498-511
+src/mnfst/outbound.py
+  s_440e3eb4da6e01::t_813317e2d2980a 105-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "200156b91de4a25d49dadcd0651297b01ebe430c",
+  "prompts": {},
+  "sessions": {
+    "s_440e3eb4da6e01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "958d9903-8750-41df-8c05-f78765c3f03b",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
