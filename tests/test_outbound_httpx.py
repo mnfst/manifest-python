@@ -25,6 +25,7 @@ class Provider:
         provider = self
         self.requests: list = []
         self.received: list = []  # (route, headers, parsed body) per JSON POST
+        self.gets: list = []  # (route, headers, raw body) per GET
 
         class Handler(BaseHTTPRequestHandler):
             protocol_version = "HTTP/1.1"
@@ -33,6 +34,16 @@ class Provider:
                 pass
 
             def do_GET(self):
+                length = int(self.headers.get("content-length", 0))
+                raw = self.rfile.read(length) if length else b""
+                route, _, query = self.path.partition("?")
+                provider.gets.append((route, dict(self.headers), raw))
+                if route == "/v1/discover":  # a CDN-fronted read: page is clamped to 500
+                    page = int(dict(parse_qsl(query)).get("page", 1))
+                    if page > 500:
+                        return self._reply(400, json.dumps(
+                            {"error": {"message": "page must be at most 500"}}).encode())
+                    return self._reply(200, json.dumps({"ok": True, "page": page}).encode())
                 data = json.dumps({"error": {"message": "unknown path"}}).encode()
                 self.send_response(404)
                 self.send_header("content-type", "application/json")
@@ -484,3 +495,17 @@ def test_forbidden_statuses_never_reach_manifest(rig):
         response = httpx.post(f"{provider.url}/v1/status/{status}", json={"model": "m"})
         assert response.status_code == status
     assert stub.heals == []
+
+
+def test_get_retry_with_a_query_only_patch_carries_no_body(rig):
+    """A query-only patch heals the URL and sends `body: null`. The retry is a
+    GET: it must go out bodyless, not with a four-byte "null" that CDNs reject."""
+    provider, stub = rig
+    stub.result = {"status": "patched", "issueId": "i1", "healAttemptId": "a1",
+                   "healedRequest": {"url": f"{provider.url}/v1/discover?page=500", "body": None}}
+    response = httpx.get(f"{provider.url}/v1/discover?page=502")
+    assert response.status_code == 200
+    assert len(provider.gets) == 2
+    _, headers, body = provider.gets[-1]
+    assert body == b""
+    assert header(headers, "content-length") is None
