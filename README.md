@@ -44,7 +44,7 @@ manifest()  # once, at startup
 ## Setup
 
 1. Create a project in your [Manifest dashboard](https://dashboard.manifest.build) and copy its project key.
-2. Set the key:
+2. Set the key as an environment variable:
 
 ```sh
 export MNFST_KEY='your-project-key'
