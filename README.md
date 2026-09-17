@@ -24,6 +24,11 @@ Manifest is a self-healing layer that fixes and retries failed API requests on t
 
 ![How Manifest heals a failed request: a 400 reaches Manifest, drops to a patch from the knowledge base or the healing agents, and is retried once, returning a 200 OK](./docs/sdk-flow-diagram.png)
 
+## Prerequisites
+
+- Python 3.10 or higher
+- `httpx`, `httpx2`, or `requests`
+
 ## Get started
 
 ```sh
@@ -36,8 +41,6 @@ from mnfst import manifest
 manifest()  # once, at startup
 # Keep making your API calls as usual.
 ```
-
-Works with `httpx`, `httpx2` (sync and async) and `requests`, for JSON and form-urlencoded bodies. Python 3.10+. The import name is `mnfst`.
 
 ## Setup
 
