@@ -48,7 +48,7 @@ export MNFST_KEY='your-project-key'
 
 Call `manifest()` once at startup, before your first request. Self-healing is enabled by default in your [dashboard](https://dashboard.manifest.build).
 
-## Example
+## Try it
 
 Send a request that would normally fail. Manifest catches it, repairs it, and retries:
 
