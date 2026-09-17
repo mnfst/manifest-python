@@ -32,7 +32,9 @@ def test_probe_accepts_a_valid_key():
         result = probe_key(config(stub.url))
     assert result.status == "ok"
     assert "Stub project" in result.detail
-    assert stub.hellos[0]["runtime"].startswith("python-")
+    # A key check, never an install: a diagnostic run must not make the
+    # dashboard claim the app is connected.
+    assert stub.hellos[0] == {"probe": True}
 
 
 def test_probe_flags_a_rejected_key():
