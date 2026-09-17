@@ -12,6 +12,7 @@ class StubPhoenix:
     def __init__(self, result: Optional[dict] = None):
         self.result = result
         self.heals: list[dict] = []
+        self.hellos: list[dict] = []
         self.outcomes: list[tuple[str, dict]] = []
         self.disabled = False
         # Fired when a heal request arrives — the one moment a test can act
@@ -44,6 +45,9 @@ class StubPhoenix:
                 self.wfile.write(data)
 
             def do_POST(self):
+                if self.path == "/v1/hello":
+                    stub.hellos.append(self._read_json())
+                    return self._reply(200, {"status": "ok"})
                 if self.path != "/v1/heal":
                     return self._reply(404, {"error": "not_found"})
                 if stub.disabled:

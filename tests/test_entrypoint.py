@@ -5,6 +5,8 @@ import pytest
 import mnfst as mnfst_pkg
 from mnfst import HealEvent, manifest
 from mnfst.outbound import installed_config, uninstall_outbound
+from tests.helpers import wait_for
+from tests.stub_phoenix import StubPhoenix
 
 
 @pytest.fixture(autouse=True)
@@ -50,6 +52,18 @@ def test_second_install_with_same_config_is_quiet():
         warnings.simplefilter("always")
         manifest(key="mnfx_k", url="http://first.test")
     assert [str(w.message) for w in caught] == []
+
+
+def test_install_announces_once():
+    stub = StubPhoenix().start()
+    try:
+        manifest(key="mnfx_k", url=stub.url)
+        manifest(key="mnfx_k", url=stub.url)  # a second install is inert
+        assert wait_for(lambda: stub.hellos)
+        assert stub.hellos[0]["runtime"].startswith("python-")
+        assert len(stub.hellos) == 1
+    finally:
+        stub.stop()
 
 
 def test_exports():
