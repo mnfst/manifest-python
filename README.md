@@ -64,9 +64,9 @@ manifest(on_heal=lambda e: print(f"Healed: {e.heal_status}, Response: {e.replay_
 
 res = httpx.post(
     "https://api.example.com/orders",
-    json={"limit": 500},  # invalid? Manifest fixes it and retries
+    json={"limit": 500},  # Invalid? Manifest fixes it and retries.
 )
-print(res.status_code)  # see the 200 OK response
+print(res.status_code)  # See the 200 OK response.
 ```
 
 Check your [Manifest dashboard](https://dashboard.manifest.build) to see all repairs and insights.
