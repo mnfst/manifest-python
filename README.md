@@ -1,8 +1,18 @@
+<div align="center">
+
 ![Manifest SDK Architecture](./docs/github-sdk.png)
 
 # Manifest for Python
 
 **Turn 🔴 4xx API errors into 🟢 successful requests in real time.**
+
+[![CI](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/mnfst?label=PyPI)](https://pypi.org/project/mnfst/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/mnfst?label=PyPI%20downloads)](https://pypi.org/project/mnfst/)
+
+</div>
+
+---
 
 Manifest is a self-healing layer that fixes and retries failed API requests in real time.
 
@@ -11,10 +21,6 @@ Manifest is a self-healing layer that fixes and retries failed API requests in r
 * 🔌 **Works across your stack** with internal APIs, external services, and agent tools.
 
 ![How Manifest heals a failed request: a 400 reaches Manifest, drops to a patch from the knowledge base or the healing agents, and is retried once, returning a 200 OK](./docs/sdk-flow-diagram.png)
-
-[![CI](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml)
-[![PyPI version](https://img.shields.io/pypi/v/mnfst?label=PyPI)](https://pypi.org/project/mnfst/)
-[![PyPI downloads](https://img.shields.io/pypi/dm/mnfst?label=PyPI%20downloads)](https://pypi.org/project/mnfst/)
 
 ```sh
 pip install mnfst
