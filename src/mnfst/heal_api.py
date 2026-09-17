@@ -67,7 +67,6 @@ class HealEvent:
 def _headers(config: Config) -> dict:
     headers = {
         "user-agent": f"mnfst-python/{VERSION}",
-        "x-mnfst-source": "python-sdk",
     }
     if config.api_key:
         headers["authorization"] = f"Bearer {config.api_key}"
