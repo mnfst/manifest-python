@@ -8,7 +8,7 @@ app makes fails, the failing request and the API's error go to Phoenix; if the
 server returns a repaired body, the call is retried once. Successes are never
 touched. The surface is three options: key, url, on_heal — everything that
 is policy (which providers and endpoints get healed, and how hard the server
-tries) is server-side configuration, editable in the dashboard.
+tries) is server-side configuration, editable in the https://dashboard.manifest.build.
 """
 from __future__ import annotations
 

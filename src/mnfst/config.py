@@ -4,7 +4,7 @@ The surface is deliberately tiny: credentials, server, and a local
 observability hook. Everything that is policy — whether a given app,
 provider, endpoint, or direction gets healed, and how long the server may
 spend finding a fix — lives server-side, where it is editable in the
-dashboard without a deploy. The SDK only replays when the server hands it
+https://dashboard.manifest.build without a deploy. The SDK only replays when the server hands it
 a healed body, so the server can enforce all of that with no client knob.
 """
 from __future__ import annotations
