@@ -102,7 +102,10 @@ def _apply(capture: _Capture, healed: dict) -> Optional[_Retry]:
             return None
         # A form request is replayed as a form, not as JSON under its own
         # content type; an unencodable body raises and closes the attempt.
-        content: Optional[bytes] = encode_request_body(merged, capture.content_type)
+        # No body survives the merge on a bodyless method: send none, rather
+        # than encoding None into a literal b"null" that CDNs reject.
+        content: Optional[bytes] = (None if merged is None else
+                                    encode_request_body(merged, capture.content_type))
     else:
         content = capture.content
         if content is None and capture.method not in _BODYLESS:
