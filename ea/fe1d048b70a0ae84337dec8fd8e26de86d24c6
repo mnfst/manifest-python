@@ -1,0 +1,31 @@
+tests/stub_phoenix.py
+  s_7ac3e5c015ab6b::t_a6305e07554109 17
+CONTRACT.md
+  s_7ac3e5c015ab6b::t_ea9610099bab59 5-16
+tests/test_heal_api.py
+  s_7ac3e5c015ab6b::t_ea9610099bab59 81-105
+tests/test_entrypoint.py
+  s_7ac3e5c015ab6b::t_ea9610099bab59 8-9,57-66
+  s_7ac3e5c015ab6b::t_a1827aa51eff35 67-68
+src/mnfst/heal_api.py
+  s_7ac3e5c015ab6b::t_ea9610099bab59 23,152-186,265-266
+  s_7ac3e5c015ab6b::t_bc9d1375a1ba18 267
+src/mnfst/outbound.py
+  s_7ac3e5c015ab6b::t_ea9610099bab59 12,210-214
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "eafe1d048b70a0ae84337dec8fd8e26de86d24c6",
+  "prompts": {},
+  "sessions": {
+    "s_7ac3e5c015ab6b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f4f2148fbffeJJzs9a8qNWntQj",
+        "model": "auto"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
