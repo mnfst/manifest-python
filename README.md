@@ -14,7 +14,7 @@
 
 ## What is Manifest
 
-Manifest is a self-healing layer that fixes and retries failed API requests in real time.
+Manifest is a self-healing layer that fixes and retries failed API requests on the fly.
 
 * 🎯 **Fix failures automatically** before they impact your users.
 * 🔔 **Get notified of root causes** so you can fix them permanently.
