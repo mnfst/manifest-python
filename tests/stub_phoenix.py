@@ -13,6 +13,8 @@ class StubPhoenix:
         self.result = result
         self.heals: list[dict] = []
         self.hellos: list[dict] = []
+        self.hello_status = 200
+        self.hello_body = {"status": "ok", "project": {"name": "Stub project"}}
         self.outcomes: list[tuple[str, dict]] = []
         self.disabled = False
         # Fired when a heal request arrives — the one moment a test can act
@@ -46,8 +48,10 @@ class StubPhoenix:
 
             def do_POST(self):
                 if self.path == "/v1/hello":
+                    if stub.hello_status != 200:
+                        return self._reply(stub.hello_status, {"error": "unauthorized"})
                     stub.hellos.append(self._read_json())
-                    return self._reply(200, {"status": "ok"})
+                    return self._reply(200, stub.hello_body)
                 if self.path != "/v1/heal":
                     return self._reply(404, {"error": "not_found"})
                 if stub.disabled:

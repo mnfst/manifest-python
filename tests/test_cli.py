@@ -9,6 +9,8 @@ from mnfst.__main__ import (
     environment_with_bootstrap,
     main,
 )
+from mnfst.doctor import Check
+from tests.stub_phoenix import StubPhoenix
 
 
 def test_bootstrap_directory_ships_sitecustomize():
@@ -27,7 +29,9 @@ def test_environment_without_existing_pythonpath():
 
 def test_help_prints_usage(capsys):
     assert main(["--help"]) is None
-    assert "mnfst run" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "mnfst run" in out
+    assert "mnfst doctor" in out
 
 
 def test_no_arguments_prints_usage(capsys):
@@ -47,6 +51,18 @@ def test_unknown_command_exits_2(capsys):
         main(["fly"])
     assert exc.value.code == 2
     assert "unknown command" in capsys.readouterr().err
+
+
+def test_doctor_dispatches(monkeypatch, capsys):
+    monkeypatch.setattr("mnfst.doctor.checks", lambda: [Check("ok", "SDK installed", "mnfst x")])
+    assert main(["doctor"]) == 0
+    assert "SDK installed" in capsys.readouterr().out
+
+
+def test_doctor_rejects_arguments(capsys):
+    with pytest.raises(SystemExit) as exc:
+        main(["doctor", "extra"])
+    assert exc.value.code == 2
 
 
 def test_run_without_command_exits_2(capsys):
@@ -127,3 +143,21 @@ def test_run_propagates_the_command_exit_code():
         capture_output=True, text=True, env=dict(os.environ), timeout=30,
     )
     assert proc.returncode == 3
+
+
+def test_doctor_end_to_end():
+    with StubPhoenix() as stub:
+        env = dict(os.environ)
+        env["MNFST_KEY"] = "mnfst_proj_abcdefghijklmnopDZDw"
+        env["MNFST_URL"] = stub.url
+        env["PYTHONPATH"] = bootstrap_directory()
+        proc = subprocess.run(
+            [sys.executable, "-m", "mnfst", "doctor"],
+            capture_output=True, text=True, env=env, timeout=30,
+        )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "SDK installed" in proc.stdout
+    assert "Preload active" in proc.stdout
+    assert "Stub project" in proc.stdout
+    assert "mnfst_proj_abcdefghijklmnopDZDw" not in proc.stdout
+
