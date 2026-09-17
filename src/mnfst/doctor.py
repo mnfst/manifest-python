@@ -14,7 +14,6 @@ announces on, so it proves the same credential the heal path will use.
 """
 from __future__ import annotations
 
-import platform
 import sys
 from dataclasses import dataclass
 from typing import Callable, Optional
@@ -40,11 +39,6 @@ class Check:
     status: str
     label: str
     detail: str = ""
-
-
-def runtime_name() -> str:
-    """The runtime the handshake reports, matching the Node SDK's `node-22…`."""
-    return f"python-{platform.python_version()}"
 
 
 def mask_key(key: str) -> str:
@@ -73,11 +67,17 @@ def project_name(response: httpx.Response) -> Optional[str]:
 
 
 def probe_key(config: Config) -> Check:
-    """One authenticated round trip: does the server accept this key?"""
+    """One authenticated round trip: does the server accept this key?
+
+    `probe` marks it a key check rather than a boot. Without it the server
+    records an install, and the dashboard reports the app as connected because
+    someone ran a diagnostic — while this same command prints "not loaded
+    here" two lines below. Only a real `manifest()` announces.
+    """
     try:
         response = httpx.post(
             config.base_url + HELLO_PATH,
-            json={"runtime": runtime_name()},
+            json={"probe": True},
             headers={
                 "authorization": f"Bearer {config.api_key}",
                 "user-agent": f"mnfst-python/{VERSION}",
