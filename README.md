@@ -40,7 +40,7 @@ export MNFST_KEY='your-project-key'
 
 Call `manifest()` once at startup, before your first request. Self-healing is enabled by default in your [dashboard](https://dashboard.manifest.build).
 
-## See it work
+## How it works
 
 Send a request that would normally fail. Manifest catches it, repairs it, and retries:
 
@@ -59,14 +59,6 @@ print(res.status_code)  # see the 200 OK response
 
 Check your [Manifest dashboard](https://dashboard.manifest.build) to see all repairs and insights.
 
-## Good to know
-
-- **Agent tools are covered.** A tool that calls an API through one of these clients is healed with nothing to wrap.
-- **Retries repeat side effects.** Use idempotency keys on non-idempotent calls.
-- **A heal adds up to 60 s** to a failed request. Successful requests are untouched and never contact Manifest.
-- **Not intercepted:** custom `httpx` transports and `aiohttp`.
-- **Privacy.** Failed URLs, headers, JSON or form-urlencoded bodies, and error responses are sent to Manifest. Known credentials are masked, but nested secrets and business data are not. Enable it only for traffic you allow Manifest to process.
-
 ## More
 
-[Configuration, limits & development](docs/guide.md) · [API contract](CONTRACT.md) · [Node.js SDK](https://github.com/mnfst/manifest-node)
+[Configuration, limits & development](docs/guide.md) · [API contract](CONTRACT.md) · [Node.js SDK](https://github.com/mnfst/manifest-node) · [Website](https://manifest.build)
