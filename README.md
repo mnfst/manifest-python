@@ -22,6 +22,8 @@ Manifest is a self-healing layer that fixes and retries failed API requests in r
 
 ![How Manifest heals a failed request: a 400 reaches Manifest, drops to a patch from the knowledge base or the healing agents, and is retried once, returning a 200 OK](./docs/sdk-flow-diagram.png)
 
+## Get started
+
 ```sh
 pip install mnfst
 ```
