@@ -14,6 +14,8 @@
 
 ---
 
+## What is Manifest
+
 Manifest is a self-healing layer that fixes and retries failed API requests in real time.
 
 * 🎯 **Fix failures automatically** before they impact your users.
@@ -46,7 +48,7 @@ export MNFST_KEY='your-project-key'
 
 Call `manifest()` once at startup, before your first request. Self-healing is enabled by default in your [dashboard](https://dashboard.manifest.build).
 
-## How it works
+## Example
 
 Send a request that would normally fail. Manifest catches it, repairs it, and retries:
 
