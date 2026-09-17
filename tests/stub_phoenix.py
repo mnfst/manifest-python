@@ -14,7 +14,7 @@ class StubPhoenix:
         self.heals: list[dict] = []
         self.hellos: list[dict] = []
         self.hello_status = 200
-        self.hello_body = {"project": {"name": "Stub project"}}
+        self.hello_body = {"status": "ok", "project": {"name": "Stub project"}}
         self.outcomes: list[tuple[str, dict]] = []
         self.disabled = False
         # Fired when a heal request arrives — the one moment a test can act

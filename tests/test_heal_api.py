@@ -78,6 +78,31 @@ def test_app_disabled_backs_off():
     assert DISABLED_BACKOFF_SECONDS == 300
 
 
+def test_hello_announces_the_install():
+    seen, transport = capture(lambda r: httpx.Response(200, json={"status": "ok"}))
+    api = HealApi(CFG, transport=transport)
+    # Returns immediately: a handshake must never delay startup.
+    assert api.hello("python-3.12.0") is None
+    assert wait_for(lambda: seen)
+    req = seen[0]
+    assert req.method == "POST"
+    assert req.url == "http://phoenix.test/v1/hello"
+    assert req.headers["authorization"] == "Bearer mnfx_test_k"
+    assert req.headers["user-agent"].startswith("mnfst-python/")
+    # Carries the runtime and nothing else — identity rides in the user-agent.
+    assert json.loads(req.content) == {"runtime": "python-3.12.0"}
+
+
+def test_a_failing_hello_is_swallowed():
+    # An app that cannot reach Manifest must still boot cleanly: no raise, and
+    # no warning printed on every boot.
+    def boom(request):
+        raise httpx.ConnectError("down")
+
+    api = HealApi(CFG, transport=httpx.MockTransport(boom))
+    assert api.hello("python-3.12.0") is None
+
+
 def test_report_outcome_fire_and_forget():
     seen, transport = capture(lambda r: httpx.Response(200, json={}))
     api = HealApi(CFG, transport=transport)

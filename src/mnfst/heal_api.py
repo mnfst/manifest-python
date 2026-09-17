@@ -20,6 +20,7 @@ from .gate import bounded_json
 logger = logging.getLogger("mnfst")
 _HEAL_SLOTS = threading.BoundedSemaphore(8)
 MAX_HEAL_RESPONSE = 1_048_576
+HELLO_TIMEOUT_SECONDS = 5.0
 
 def _bounded_call(call):
     if not _HEAL_SLOTS.acquire(blocking=False):
@@ -148,6 +149,41 @@ class HealApi:
         finally:
             internal_call.reset(token)
 
+    def hello(self, runtime: str) -> None:
+        """Announce this install: "I am installed."
+
+        Without it a broken install and a healthy app look identical from the
+        dashboard — both are silence. Four causes hide behind that silence (key
+        unset, key invalid, app not restarted, SDK never loaded), and an app
+        with no failing calls produces exactly the same nothing.
+
+        Deliberately fire-and-forget and deliberately quiet. It carries no
+        application data: the SDK name and version ride in the user-agent this
+        client already sends, so the body is the runtime and nothing else. A
+        failure is not warned about — the dashboard showing "not connected" IS
+        the signal, and an app that cannot reach Manifest must not print on
+        every boot.
+
+        The internal_call guard keeps the handshake from being captured by our
+        own patch, and it is never gated by the disabled backoff: reaching
+        Manifest is the point.
+        """
+        def _send() -> None:
+            token = internal_call.set(True)
+            try:
+                response = self._client.post("/v1/hello", json={"runtime": runtime},
+                                             timeout=HELLO_TIMEOUT_SECONDS)
+                response.close()
+            except Exception:
+                pass
+            finally:
+                internal_call.reset(token)
+
+        try:
+            threading.Thread(target=_send, daemon=True).start()
+        except Exception:
+            pass
+
     def report_outcome(self, heal_attempt_id: str, retry_status_code: int,
                        error: Any = None, truncated: bool = False) -> None:
         if retry_status_code == 0:
@@ -225,6 +261,9 @@ class AsyncHealApi:
             return None
         finally:
             internal_call.reset(token)
+
+    def hello(self, runtime: str) -> None:
+        self._sync.hello(runtime)
 
     def report_outcome(self, heal_attempt_id: str, retry_status_code: int,
                        error: Any = None, truncated: bool = False) -> None:

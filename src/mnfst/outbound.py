@@ -9,6 +9,7 @@ healedRequest (url / headers / body) → retry once → report the outcome.
 """
 from __future__ import annotations
 
+import platform
 import time
 import uuid
 from typing import Any, Mapping, Optional
@@ -206,6 +207,11 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
     for mod in _httpx_modules():
         _install_httpx(mod, config, sync_api, async_api)
     install_requests(config, sync_api)
+    # Announce the install, so that silence stops being ambiguous: a healthy
+    # app and a broken one are otherwise the same nothing on the dashboard.
+    # Once per process, fire-and-forget — it must never delay startup, and a
+    # failure is never warned about (the quiet dashboard IS the signal).
+    sync_api.hello(f"python-{platform.python_version()}")
 
 
 def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealApi) -> None:

@@ -2,6 +2,18 @@
 
 The SDK talks to the configured Manifest API using `Authorization: Bearer <project key>` and `User-Agent: mnfst-python/<version>`.
 
+## Handshake
+
+On install, once per process, the SDK announces itself with `POST /v1/hello`:
+
+```json
+{"runtime": "python-3.12.0"}
+```
+
+The SDK name and version ride in the `User-Agent`; the body is the runtime and nothing else. This is a separate endpoint from the requests ledger — a synthetic failing request would write data that never happened into the customer's Requests list and corrupt reported volume and recovery rate.
+
+Best-effort and fire-and-forget: a handshake that fails is never retried and never surfaces to the app. Absence of a handshake is the signal ("not connected"), so the dashboard can tell an install that never loaded apart from a healthy app that has no failures.
+
 ## Capture
 
 `POST /v1/heal` receives:
