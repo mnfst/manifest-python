@@ -22,15 +22,17 @@ import sys
 from importlib.resources import files
 from typing import Mapping, MutableMapping, Optional, Sequence
 
-USAGE = """usage: mnfst run <command> [args...]
+USAGE = """usage: mnfst <command> [args...]
 
-Run a command with Manifest preloaded, so it instruments the process before
-the app's first request.
+commands:
+  run <command> [args...]   run a command with Manifest preloaded
+  doctor                    verify the install: SDK, key, and preload
 
 examples:
   mnfst run uvicorn main:app
   mnfst run gunicorn app:app
   mnfst run celery -A tasks worker
+  mnfst doctor
 
 `mnfst run` requires MNFST_KEY; without it the command still runs, uninstrumented.
 """
@@ -55,7 +57,7 @@ def environment_with_bootstrap(environ: Mapping[str, str]) -> dict:
     return env
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Optional[Sequence[str]] = None) -> Optional[int]:
     args = list(sys.argv[1:] if argv is None else argv)
 
     if not args or args[0] in ("-h", "--help"):
@@ -65,6 +67,12 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         from .version import VERSION
         sys.stdout.write(VERSION + "\n")
         return
+    if args[0] == "doctor":
+        if len(args) > 1:
+            sys.stderr.write(f"mnfst: 'doctor' takes no arguments\n\n{USAGE}")
+            raise SystemExit(2)
+        from .doctor import run_doctor
+        return run_doctor()
     if args[0] != "run":
         sys.stderr.write(f"mnfst: unknown command {args[0]!r}\n\n{USAGE}")
         raise SystemExit(2)

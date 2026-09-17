@@ -63,6 +63,8 @@ export MNFST_KEY='your-project-key'
 
 Load the SDK with `mnfst run`, or call `manifest()` once at startup, before your first request. Self-healing is enabled by default in your project settings.
 
+Check the install at any time with [`mnfst doctor`](docs/guide.md#verifying-the-installation).
+
 ## Try it
 
 Send a request that would normally fail. Manifest catches it, repairs it, and retries:

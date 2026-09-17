@@ -50,7 +50,22 @@ Use the source-level call when there is no command to prefix: AWS Lambda, a note
 
 ## Verifying the installation
 
-Send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404, 422 or any other request-side 4xx. The failure appears in your [project's dashboard](https://dashboard.manifest.build), and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. Outcome reports are asynchronous, so a short-lived script may exit before the report is delivered.
+Run the built-in checks:
+
+```sh
+mnfst doctor
+```
+
+```
+  ✅ SDK installed          mnfst 1.0.0
+  ✅ MNFST_KEY set          mnfst_pr…DZDw
+  ✅ Key valid              project "My project"
+  ✅ Preload active         the SDK runs in this process
+```
+
+It verifies the SDK imports, the key is readable (never printed in full), the key is accepted by a single authenticated round trip, and `manifest()` ran in the process that makes the calls. A rejected or unreachable key is otherwise indistinguishable from a healthy install: both are silence. Run it through `mnfst run` — `mnfst run mnfst doctor` — for the preload check to see the same startup path as your app. The command exits non-zero if any check fails.
+
+Then send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404, 422 or any other request-side 4xx. The failure appears in your [project's dashboard](https://dashboard.manifest.build), and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. Outcome reports are asynchronous, so a short-lived script may exit before the report is delivered.
 
 ## Behavior and limits
 
