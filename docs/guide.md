@@ -34,6 +34,20 @@ manifest(on_heal=lambda event: print(event.heal_status, event.replay_status_code
 
 Outcome reports run in background threads and are best effort. Failed or dropped reports emit warnings on the `mnfst` logger. Abrupt termination can lose reports.
 
+## Running your app
+
+`pip install mnfst` also installs an `mnfst` command. Prefix your start command with `mnfst run` and the SDK loads before the app's first request:
+
+```sh
+mnfst run uvicorn main:app
+mnfst run gunicorn app:app
+mnfst run celery -A tasks worker
+```
+
+`mnfst run` requires `MNFST_KEY`. Without it the command still runs, uninstrumented, with one warning. It prepends a bootstrap directory to `PYTHONPATH` and execs the real command, so the interpreter imports the SDK at startup — the same preload as `ddtrace-run`. The prefix applies to the command's child processes too, and it takes precedence over any other `sitecustomize` on `PYTHONPATH`.
+
+Use the source-level call when there is no command to prefix: AWS Lambda, a notebook, or a start command owned by a host dashboard you cannot edit. It is also visible in git, which a dashboard setting is not.
+
 ## Verifying the installation
 
 Send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404, 422 or any other request-side 4xx. The failure appears in your [project's dashboard](https://dashboard.manifest.build), and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. Outcome reports are asynchronous, so a short-lived script may exit before the report is delivered.
