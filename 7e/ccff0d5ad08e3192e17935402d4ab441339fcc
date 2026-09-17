@@ -1,0 +1,21 @@
+src/mnfst/doctor.py
+  s_b788cafd52faba::t_b6a7d173f5abe2 70-76,80
+tests/test_doctor.py
+  s_b788cafd52faba::t_475cffdd308579 35-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7eccff0d5ad08e3192e17935402d4ab441339fcc",
+  "prompts": {},
+  "sessions": {
+    "s_b788cafd52faba": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f9ba8b9e-d656-4030-903b-a9921fc67fc3",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
