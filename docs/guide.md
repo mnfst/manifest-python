@@ -36,7 +36,7 @@ Outcome reports run in background threads and are best effort. Failed or dropped
 
 ## Verifying the installation
 
-Send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404, 422 or any other request-side 4xx. The failure appears in your project's dashboard, and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. Outcome reports are asynchronous, so a short-lived script may exit before the report is delivered.
+Send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404, 422 or any other request-side 4xx. The failure appears in your [project's dashboard](https://dashboard.manifest.build), and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. Outcome reports are asynchronous, so a short-lived script may exit before the report is delivered.
 
 ## Behavior and limits
 
