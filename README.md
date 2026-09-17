@@ -4,7 +4,7 @@
 
 # Manifest for Python
 
-**Turn 🔴 4xx API errors into 🟢 successful requests in real time.**
+**Turn 🔴 4xx API errors into 🟢 2xx in real time.**
 
 [![CI](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/mnfst?label=PyPI)](https://pypi.org/project/mnfst/)
