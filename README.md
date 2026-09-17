@@ -1,6 +1,6 @@
 <div align="center">
 
-![Manifest SDK Architecture](./docs/github-sdk.png)
+<img src="./docs/github-sdk.png" alt="Manifest SDK Architecture" style="border-radius: 16px;">
 
 # Manifest for Python
 
