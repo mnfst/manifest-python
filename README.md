@@ -2,7 +2,7 @@
 
 <img src="./docs/github-sdk.png" alt="Manifest SDK Architecture" style="border-radius: 16px;">
 
-# Manifest for Python {.no-border}
+# Manifest for Python
 
 **Turn 🔴 4xx API errors into 🟢 successful requests in real time.**
 
