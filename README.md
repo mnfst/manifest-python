@@ -26,7 +26,7 @@ Manifest is a self-healing layer that fixes and retries failed API requests on t
 
 ## Prerequisites
 
-- Python 3.10 or higher
+- <a href="https://www.python.org/downloads/release/python-3100/" target="_blank">Python 3.10</a> or higher
 
 ## Get started
 
