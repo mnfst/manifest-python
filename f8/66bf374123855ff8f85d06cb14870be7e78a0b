@@ -1,0 +1,34 @@
+src/mnfst/heal_api.py
+  s_773125a5fdb1da::t_b43359f91910aa 23
+  s_773125a5fdb1da::t_aa44508480c5f5 152-186
+  s_773125a5fdb1da::t_c91422d864a782 265-267
+tests/stub_phoenix.py
+  s_773125a5fdb1da::t_c17ea4628d54d7 48-50
+  s_773125a5fdb1da::t_fa12c7fbd6a017 15
+src/mnfst/outbound.py
+  s_773125a5fdb1da::t_3707822b0c3f9d 12
+  s_773125a5fdb1da::t_513bbe8b7f8934 210-214
+tests/test_heal_api.py
+  s_773125a5fdb1da::t_2424659ef2f275 81-105
+tests/test_entrypoint.py
+  s_773125a5fdb1da::t_8c1b4991426a7a 57-68
+  s_773125a5fdb1da::t_4db18f29b1aaff 8-9
+CONTRACT.md
+  s_773125a5fdb1da::t_ee9aa4d28d5a8d 5-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f866bf374123855ff8f85d06cb14870be7e78a0b",
+  "prompts": {},
+  "sessions": {
+    "s_773125a5fdb1da": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f4f22bc63ffebCEupUFrdBzB6D",
+        "model": "auto"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
