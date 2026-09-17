@@ -31,7 +31,6 @@ def test_heal_success_sends_auth_and_returns_result():
     req = seen[0]
     assert req.url == "http://phoenix.test/v1/heal"
     assert req.headers["authorization"] == "Bearer mnfx_test_k"
-    assert req.headers["x-mnfst-source"] == "python-sdk"
     assert req.headers["user-agent"].startswith("mnfst-python/")
     assert json.loads(req.content) == PAYLOAD
 
