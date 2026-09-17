@@ -20,6 +20,8 @@ Manifest is a self-healing layer that fixes and retries failed API requests in r
 * 🔔 **Get notified of root causes** so you can fix them permanently.
 * 🔌 **Works across your stack** with internal APIs, external services, and agent tools.
 
+## How it works
+
 ![How Manifest heals a failed request: a 400 reaches Manifest, drops to a patch from the knowledge base or the healing agents, and is retried once, returning a 200 OK](./docs/sdk-flow-diagram.png)
 
 ## Get started
