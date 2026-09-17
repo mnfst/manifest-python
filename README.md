@@ -34,12 +34,23 @@ Manifest is a self-healing layer that fixes and retries failed API requests on t
 pip install mnfst
 ```
 
+Run your app through the CLI, so Manifest loads before the first request:
+
+```sh
+export MNFST_KEY='your-project-key'
+mnfst run uvicorn main:app
+```
+
+`mnfst run` prefixes any command — `mnfst run gunicorn app:app`, `mnfst run celery -A tasks worker`. Or call `manifest()` yourself, once at startup:
+
 ```python
 from mnfst import manifest
 
 manifest()  # Once, at startup.
 # Keep making your API calls as usual.
 ```
+
+Use the source-level call when there is no command to prefix: AWS Lambda, a notebook, or a start command owned by a host dashboard.
 
 ## Setup
 
@@ -50,7 +61,7 @@ manifest()  # Once, at startup.
 export MNFST_KEY='your-project-key'
 ```
 
-Call `manifest()` once at startup, before your first request. Self-healing is enabled by default in your project settings.
+Load the SDK with `mnfst run`, or call `manifest()` once at startup, before your first request. Self-healing is enabled by default in your project settings.
 
 ## Try it
 
