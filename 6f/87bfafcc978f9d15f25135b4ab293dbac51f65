@@ -1,0 +1,23 @@
+src/mnfst/outbound.py
+  s_18608139a74245::t_443d7930fb42ed 16,26-27,94,97-98,121-138
+src/mnfst/wire.py
+  s_18608139a74245::t_4f9219e9978ee8 35-38
+tests/test_query_credentials.py
+  s_18608139a74245::t_98191fdd3b407a 1-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6f87bfafcc978f9d15f25135b4ab293dbac51f65",
+  "prompts": {},
+  "sessions": {
+    "s_18608139a74245": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8507883f-dfaf-424a-a038-9a2d0e3c21d7",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
