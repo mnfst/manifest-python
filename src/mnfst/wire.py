@@ -32,6 +32,10 @@ SECRET_PARAMS = frozenset({
 # one carries a credential (authorization, proxy_authorization, x_api_key,
 # x_goog_api_key, cookie, x_amz_security_token, ...). Over-masking a harmless
 # header (idempotency_key) costs nothing — its presence still travels.
+# What the SDK writes in place of a credential. Never put back on the wire
+# when the server serves it back for a name it does not classify itself.
+MASK = "REDACTED"
+
 SECRET_HEADER_ROOTS = ("auth", "key", "token", "secret", "session", "password",
                        "passwd", "cookie", "signature", "credential", "bearer", "jwt")
 

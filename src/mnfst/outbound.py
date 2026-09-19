@@ -13,7 +13,7 @@ import platform
 import time
 import uuid
 from typing import Any, Mapping, Optional
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
 
@@ -23,7 +23,8 @@ from .gate import should_capture
 from .heal_api import NOT_ATTEMPTED, AsyncHealApi, HealApi, HealEvent, internal_call
 from .merge import merge_healed_body
 from .response_capture import capture_httpx, capture_httpx_async, capture_requests
-from .wire import capped_response_body, heal_payload, safe_error_text, traveling_body
+from .wire import (MASK, capped_response_body, heal_payload, is_secret_header, safe_error_text,
+                   traveling_body)
 
 # Methods a retry may carry no body for.
 _BODYLESS = ("GET", "HEAD", "DELETE", "OPTIONS")
@@ -90,8 +91,11 @@ def _apply(capture: _Capture, healed: dict) -> Optional[_Retry]:
     if not _same_origin(url, capture.url):
         return None  # a URL heal may move the path, never the host: the
                      # retry carries the caller's credentials (CONTRACT §4)
+    url = _restore_query_credentials(url, capture.url)
     headers = {k: v for k, v in capture.headers.items() if k.lower() != "content-length"}
     for name, value in (healed.get("headers") or {}).items():
+        if value is not None and str(value) == MASK:
+            continue  # the SDK's own mask served back: the caller's header stays
         headers = {k: v for k, v in headers.items() if k.lower() != str(name).lower()}
         if value is not None:
             headers[str(name)] = str(value)
@@ -112,6 +116,24 @@ def _apply(capture: _Capture, healed: dict) -> Optional[_Retry]:
         if content is None and capture.method not in _BODYLESS:
             return None
     return _Retry(url, headers, content)
+
+
+def _restore_query_credentials(url: str, original: str) -> str:
+    """The SDK masks credential query parameters on the wire, and the server
+    drops credentials from the URL it serves (or echoes the mask for a name it
+    does not classify), so the served URL never carries the caller's key. Put
+    the caller's own values back unless the server healed that parameter to a
+    real value; a mask with nothing behind it is dropped."""
+    parts = urlsplit(str(url))
+    served = parse_qsl(parts.query, keep_blank_values=True)
+    sent = parse_qsl(urlsplit(str(original)).query, keep_blank_values=True)
+    names = {name for name, _ in served}
+    masked = {name for name, value in served if value == MASK}
+    pairs = [(name, value) for name, value in served if value != MASK]
+    for name in dict.fromkeys(name for name, _ in sent):
+        if is_secret_header(name) and (name not in names or name in masked):
+            pairs.extend((n, v) for n, v in sent if n == name)
+    return urlunsplit(parts._replace(query=urlencode(pairs)))
 
 
 def _same_origin(url: str, original: str) -> bool:
