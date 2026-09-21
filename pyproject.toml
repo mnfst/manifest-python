@@ -2,6 +2,8 @@
 name = "mnfst"
 dynamic = ["version"]
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 description = "Heal failing API requests on the fly."
 requires-python = ">=3.10"
 dependencies = ["httpx>=0.24,<1", "anyio>=4,<5"]
