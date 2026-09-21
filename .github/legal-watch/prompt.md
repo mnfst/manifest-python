@@ -22,10 +22,10 @@ MNFST, Inc. runs two products. The pages cover both, with common sections
   one, and the app retries the corrected request with its own credentials.
   An agent studies errors that no patch covers and suggests patch
   proposals; a person at Manifest approves them. The dashboard lives at
-  app.manifest.build. Code: the repositories `mnfst/app` (backend,
+  dashboard.manifest.build. Code: the repositories `mnfst/app` (backend,
   dashboard, agent), `mnfst/manifest-python` and `mnfst/manifest-node`.
 - **Manifest LLM Gateway** (Terms Part B, Privacy "Manifest LLM Gateway"):
-  an open source LLM router at gateway.manifest.build or self-hosted. It is
+  an open source LLM router at app.manifest.build or self-hosted. It is
   a client of Manifest for Autofix. Pull requests on the Gateway are out of
   your scope, but a change in Manifest can change what the Gateway section
   says about Autofix.
@@ -35,8 +35,8 @@ MNFST, Inc. runs two products. The pages cover both, with common sections
 These are true even when the code you see says otherwise. Never report them
 as false, and never propose to change them:
 
-- Manifest lives at app.manifest.build (API at api.manifest.build). The
-  Gateway lives at gateway.manifest.build.
+- Manifest lives at dashboard.manifest.build (API at api.manifest.build). The
+  Gateway lives at app.manifest.build.
 - The SDKs handle every 4xx status except 401, 403 and 429. 402 is handled.
 - Manifest keeps failed requests and patched requests for 30 days.
 - Plans for Manifest: Starter (free) and Enterprise (separate agreement).
