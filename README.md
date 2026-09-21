@@ -33,10 +33,10 @@ Manifest is a self-healing layer that fixes and retries failed API requests on t
 ### Start with your agent
 
 ```
-"Install Manifest in this app: https://app-staging.manifest.build/prompt-python.md"
+"Install Manifest in this app: https://dashboard.manifest.build/prompt-python.md"
 ```
 
-[Read the prompt →](https://app-staging.manifest.build/prompt-python.md)
+[Read the prompt →](https://dashboard.manifest.build/prompt-python.md)
 
 The prompt finds your entry point and stops to let you paste your key.
 
