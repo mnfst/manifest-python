@@ -26,6 +26,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/mnfst"]
 
+[tool.hatch.build.targets.sdist]
+exclude = ["docs/github-sdk.png"]
+
 [tool.hatch.version]
 path = "src/mnfst/version.py"
 
