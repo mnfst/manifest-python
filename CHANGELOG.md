@@ -1,5 +1,55 @@
 # Changelog
 
+## [1.1.0](https://github.com/mnfst/manifest-python/compare/v1.0.0...v1.1.0) (2026-09-22)
+
+
+### Features
+
+* add mnfst doctor command ([fb7ecb2](https://github.com/mnfst/manifest-python/commit/fb7ecb201463d6e554b98af6caed1202850e5649))
+* add mnfst doctor command ([feeb7d5](https://github.com/mnfst/manifest-python/commit/feeb7d55cff1f3b664c4572ed879b9f9088b7cf9))
+* add mnfst run console script ([45ca90c](https://github.com/mnfst/manifest-python/commit/45ca90cad0f330d4216ad69a749c33cffb54bf6f))
+* add mnfst run console script ([6a1cfa1](https://github.com/mnfst/manifest-python/commit/6a1cfa1315e3b6aef16ba97ca9ceca36a5f74e69))
+* announce the install with a boot handshake ([ccf9b48](https://github.com/mnfst/manifest-python/commit/ccf9b4818d3488ab73dc15c2f369f3c9d5eba580))
+* announce the install with a boot handshake ([f866bf3](https://github.com/mnfst/manifest-python/commit/f866bf374123855ff8f85d06cb14870be7e78a0b))
+
+
+### Bug Fixes
+
+* add rounded corners to logo image (16px border-radius) ([3bfead0](https://github.com/mnfst/manifest-python/commit/3bfead01501e17b7eed2f88bde7ee21d4c9f9ae8))
+* apply border-radius with wrapper div for GitHub compatibility ([544b673](https://github.com/mnfst/manifest-python/commit/544b673eaf3b978ab408eb5996bbee479fc3a4a1))
+* **doctor:** make the key check a probe, not an install ([5962cdb](https://github.com/mnfst/manifest-python/commit/5962cdb9a6dd08e707e5a6cb3f6d47c1cab80172))
+* **doctor:** make the key check a probe, not an install ([7eccff0](https://github.com/mnfst/manifest-python/commit/7eccff0d5ad08e3192e17935402d4ab441339fcc))
+* increase border-radius to 56px ([a51bff6](https://github.com/mnfst/manifest-python/commit/a51bff6af42948d1a28f983fe044890f4bd0eb18))
+* remove invalid Markdown syntax from H1 ([2e7a261](https://github.com/mnfst/manifest-python/commit/2e7a2615dd34513cae7e1a30c67b34a6febfb0b5))
+* send GET retries without a body when the patch is query-only ([77e4601](https://github.com/mnfst/manifest-python/commit/77e4601882b306f3e08bf15ac63426dd4da71380))
+* send GET retries without a body when the patch is query-only ([200156b](https://github.com/mnfst/manifest-python/commit/200156b91de4a25d49dadcd0651297b01ebe430c))
+
+
+### Documentation
+
+* add 'Get started' section for installation code ([ee3d166](https://github.com/mnfst/manifest-python/commit/ee3d1666591453e99e69b917daa8436d9d82540a))
+* add 'How it works' section for diagram ([64101d1](https://github.com/mnfst/manifest-python/commit/64101d18eaf806800b37ddbff74c24a00a061ff8))
+* add border-radius to header image ([84818d1](https://github.com/mnfst/manifest-python/commit/84818d11196775a31f69d1fd4d59d1b119c9bcb8))
+* add community files (CODE_OF_CONDUCT, CONTRIBUTING, SECURITY, LICENSE) ([79148ad](https://github.com/mnfst/manifest-python/commit/79148ad4385b6cd26e14b47c9f37df28a3c19843))
+* add community files (CODE_OF_CONDUCT, CONTRIBUTING, SECURITY, LICENSE) ([6203da9](https://github.com/mnfst/manifest-python/commit/6203da9e0ed78033832189a91064de080d65bd5e))
+* add Prerequisites section and remove redundant text ([cb1472b](https://github.com/mnfst/manifest-python/commit/cb1472b76c1c4b1663f5a2acf7f652364488b5d6))
+* add Python 3.10 download link (opens in new tab) ([36edd72](https://github.com/mnfst/manifest-python/commit/36edd722fbe5d0f443f79311319c1e8e2f5a24d5))
+* add section titles for better structure ([cf99641](https://github.com/mnfst/manifest-python/commit/cf9964133c1a64986b95092ca61e60fada38c2dc))
+* center header section with separator ([0de4d0d](https://github.com/mnfst/manifest-python/commit/0de4d0dc21133fcd12c54e4440f7cfb75b8d468b))
+* change 'in real time' to 'on the fly' ([78fdd92](https://github.com/mnfst/manifest-python/commit/78fdd92b2abf4ff46bdd138c8dce19eb788cce22))
+* change 'successful requests' to '2xx' in title ([87ec4a3](https://github.com/mnfst/manifest-python/commit/87ec4a36cb5f3f3de499972fb16d5373aec3e054))
+* clarify 'Set the key' refers to environment variable ([60697f8](https://github.com/mnfst/manifest-python/commit/60697f8f7bc67858d807f7d234fbdeaadefa26f0))
+* fix comment capitalization and punctuation ([e3587f4](https://github.com/mnfst/manifest-python/commit/e3587f46ac5fcd72ab112c95c204b974633f00eb))
+* fix comment formatting in Try it section ([04a1a07](https://github.com/mnfst/manifest-python/commit/04a1a07b92900d3f5522119c65004c5286a5affc))
+* offer the agent install path first ([8560e51](https://github.com/mnfst/manifest-python/commit/8560e510aa3ab0002a5e8fdbbcd34a2faf4808e1))
+* remove H1 border and separator under badges ([ab4fff7](https://github.com/mnfst/manifest-python/commit/ab4fff74c5d7f0fd8471a9387d26166d6c863386))
+* rename section to 'Try it' for better engagement ([20f2116](https://github.com/mnfst/manifest-python/commit/20f2116f336c5fcb2c693435f6d1c9b4bae5458c))
+* restructure SDK README with clearer value proposition ([49e264b](https://github.com/mnfst/manifest-python/commit/49e264b8716ba0b7bda78e4a0a4dafb7db36e5a7))
+* restructure SDK README with clearer value proposition ([cdb2458](https://github.com/mnfst/manifest-python/commit/cdb245827bd55fa87d25adbc4c8a865bb2eec298))
+* simplify Prerequisites to just Python version ([a46eb9c](https://github.com/mnfst/manifest-python/commit/a46eb9c31c703d6dc31118158ab5b2bde851be4e))
+* simplify README - rename section and remove Good to know ([bb75075](https://github.com/mnfst/manifest-python/commit/bb7507587aa55c9809f73edef5fe6853374822bb))
+* simplify Setup section wording ([0ad3a5a](https://github.com/mnfst/manifest-python/commit/0ad3a5a57645eea4c1d8f0dfc6b75cdbd34e252e))
+
 ## [1.0.0](https://github.com/mnfst/manifest-python/compare/v0.2.0...v1.0.0) (2026-09-14)
 
 
