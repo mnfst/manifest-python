@@ -62,6 +62,8 @@ class StubPhoenix:
                         time.sleep(stub.requests_delay)
                     if stub.requests_status == 202:
                         stub.tracked.extend(body["requests"])
+                    if stub.requests_status == 403:
+                        return self._reply(403, {"error": "project_disabled"})
                     return self._reply(stub.requests_status, {"accepted": len(body["requests"])})
                 if self.path != "/v1/heal":
                     return self._reply(404, {"error": "not_found"})

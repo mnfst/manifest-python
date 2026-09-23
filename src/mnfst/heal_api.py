@@ -3,6 +3,7 @@ cannot complete returns None and the caller serves the original response."""
 from __future__ import annotations
 
 import contextvars
+import os
 import threading
 import queue
 import logging
@@ -23,9 +24,14 @@ MAX_HEAL_RESPONSE = 1_048_576
 HELLO_TIMEOUT_SECONDS = 5.0
 REQUESTS_TIMEOUT_SECONDS = 5.0
 
+# Returned by HealApi.heal when every heal slot is busy: the failure was never
+# sent, so the caller tracks it instead of losing it from both ledgers.
+NOT_SENT = object()
+
+
 def _bounded_call(call):
     if not _HEAL_SLOTS.acquire(blocking=False):
-        return None
+        return NOT_SENT
     result = queue.Queue(maxsize=1)
     def run():
         try:
@@ -107,6 +113,23 @@ class HealApi:
         self._pending_lock = threading.Lock()
         self.report_failures = 0
         self.reports_dropped = 0
+        self._config = config
+        self._transport = transport
+        self._tracking_client: Optional[httpx.Client] = None
+        self._tracking_pid: Optional[int] = None
+
+    def _tracking(self) -> httpx.Client:
+        """A client of this process's own for tracked-call sends. A forked
+        worker must not reuse the parent's pool: its keep-alive socket would be
+        shared across processes, and a lock held mid-request at fork time
+        would never be released in the child."""
+        pid = os.getpid()
+        if self._tracking_client is None or self._tracking_pid != pid:
+            self._tracking_client = httpx.Client(
+                base_url=self._config.base_url, transport=self._transport,
+                headers=_headers(self._config), timeout=REQUESTS_TIMEOUT_SECONDS)
+            self._tracking_pid = pid
+        return self._tracking_client
 
     @property
     def _disabled_until(self) -> float:
@@ -198,8 +221,7 @@ class HealApi:
             return
         token = internal_call.set(True)
         try:
-            response = self._client.post("/v1/requests", json={"requests": calls},
-                                         timeout=REQUESTS_TIMEOUT_SECONDS)
+            response = self._tracking().post("/v1/requests", json={"requests": calls})
             try:
                 if _is_app_disabled(response):
                     self._disable.trip()

@@ -63,7 +63,7 @@ Reports are best effort, bounded, and observable through logger warnings. The SD
 
 ## Tracked requests
 
-Every call the SDK sees and does not send to `POST /v1/heal`, whatever its status (2xx, 3xx, 401, 402, 403, 429, 5xx, and a 4xx while the project is disabled), is recorded and sent in batches to `POST /v1/requests`:
+Every call the SDK sees and does not send to `POST /v1/heal`, whatever its status (2xx, 3xx including each redirect hop, 401, 402, 403, 429, 5xx, and a 4xx that is not sent for healing: while the project is disabled or while all eight sync heal slots are busy), is recorded and sent in batches to `POST /v1/requests`:
 
 ```json
 {"requests":[{"traceId":"a-uuid","method":"POST","url":"https://example.com/orders","statusCode":200,"responseTimeMs":84,"occurredAt":"2026-09-23T10:14:07.512000+00:00"}]}
@@ -71,4 +71,4 @@ Every call the SDK sees and does not send to `POST /v1/heal`, whatever its statu
 
 Metadata only. The URL carries scheme, host, port and path: no query string, userinfo or fragment. No headers and no request or response body are sent, and a response body is never read to record a call. A call sent to `/v1/heal` is not also tracked.
 
-Recording is an in-memory append and never delays or fails the caller's request. One daemon thread sends a batch when 500 calls are queued or every five seconds, at most once per second, up to 500 calls per request, with a five-second deadline. At most 5,000 calls are buffered; newer calls are dropped past that. A network error, timeout, 429 or 5xx is retried once, then the batch is dropped; any other answer, including 404 from a server without the route, drops it. HTTP 403 with `{"error":"project_disabled"}` suspends sending for five minutes, as for healing. Buffered calls are sent at interpreter exit (`atexit`, up to two seconds); a process killed or frozen first (serverless) can lose them. A forked worker starts with an empty buffer of its own.
+Recording is an in-memory append and never delays or fails the caller's request. One daemon thread sends a batch when 500 calls are queued or every five seconds, at most once per second, up to 500 calls per request, with a five-second deadline. At most 5,000 calls are buffered; newer calls are dropped past that. A network error, timeout, 429 or 5xx is retried once, then the batch is dropped; any other answer, including 404 from a server without the route, drops it. HTTP 403 with `{"error":"project_disabled"}` suspends sending for five minutes, as for healing. Buffered calls are sent at interpreter exit (`atexit`, up to two seconds); a process killed or frozen first (serverless) can lose them. Methods are upper-cased; a record whose method exceeds 16 characters or whose URL exceeds 4,096 is not sent. A forked worker starts with an empty buffer, a worker thread and an HTTP client of its own, and never sends what the parent buffered.

@@ -94,24 +94,65 @@ def test_a_server_without_the_route_is_ignored_and_healing_still_works(rig):
     assert len(stub.heals) == 1
 
 
-def test_tracking_adds_no_latency_when_manifest_is_slow(rig):
+def test_no_call_waits_on_a_send_even_one_that_never_answers(rig):
     provider, stub = rig
-    stub.requests_delay = 1.0
+    stub.requests_delay = 60.0  # Manifest accepts the batch and never answers
     url = f"{provider.url}/v1/generate"
+    slowest = 0.0
+    with httpx.Client() as client:
+        for _ in range(600):  # crosses 500, so a send starts mid-loop
+            started = time.monotonic()
+            client.post(url, json={"model": "m"})
+            slowest = max(slowest, time.monotonic() - started)
+    assert slowest < 0.25, f"slowest call {slowest:.3f}s"
 
-    def run():
-        started = time.monotonic()
-        with httpx.Client() as client:
-            for _ in range(600):
-                client.post(url, json={"model": "m"})
-        return time.monotonic() - started
 
-    tracked = run()
-    uninstall_outbound()
-    baseline = run()
-    # 600 calls cross the 500 threshold, so a 1 s send runs mid-loop: any wait
-    # on it would add at least a second.
-    assert tracked < baseline * 1.5 + 0.5, f"baseline {baseline:.2f}s, tracked {tracked:.2f}s"
+def test_a_healable_failure_that_cannot_be_sent_is_tracked(rig, monkeypatch):
+    provider, stub = rig
+    from mnfst.heal_api import NOT_SENT, HealApi
+    monkeypatch.setattr(HealApi, "heal", lambda self, payload: NOT_SENT)  # all slots busy
+    response = httpx.post(f"{provider.url}/v1/generate", json={"model": "m", "temperature": 0.2})
+    assert response.status_code == 400
+    flush()
+    assert stub.heals == []
+    assert [c["statusCode"] for c in stub.tracked] == [400]
+
+
+def test_methods_are_upper_cased_and_out_of_range_records_never_sent(rig):
+    provider, stub = rig
+    started = time.time()
+    outbound._track("patch", f"{provider.url}/x", 200, started, 1)
+    outbound._track("X" * 17, f"{provider.url}/x", 200, started, 1)
+    outbound._track("GET", f"{provider.url}/" + "a" * 4100, 200, started, 1)
+    outbound._track("GET", "mailto:a@b.co", 200, started, 1)
+    flush()
+    assert [c["method"] for c in stub.tracked] == ["PATCH"]
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="needs os.fork")
+@pytest.mark.filterwarnings("ignore:This process .* is multi-threaded:DeprecationWarning")
+def test_a_forked_worker_tracks_with_its_own_buffer_and_client(rig):
+    provider, stub = rig
+    httpx.post(f"{provider.url}/v1/generate", json={"model": "m"})  # buffered in the parent
+    pid = os.fork()
+    if pid == 0:  # the child: record, send, exit without running parent cleanup
+        code = 1
+        try:
+            # macOS aborts a forked child that runs its system proxy lookup
+            # (Objective-C fork safety); Linux, where preforking servers run,
+            # does not. Skip the lookup here: it is not what this test is about.
+            os.environ["NO_PROXY"] = "*"
+            httpx.post(f"{provider.url}/v1/child", json={"model": "m"})
+            outbound._tracker.flush(5)
+            code = 0
+        finally:
+            os._exit(code)
+    _, status = os.waitpid(pid, 0)
+    assert status == 0
+    flush()
+    urls = sorted(c["url"] for c in stub.tracked)
+    # The child sent only its own call; the parent's buffered call went once.
+    assert urls == [f"{provider.url}/v1/child", f"{provider.url}/v1/generate"]
 
 
 def test_a_script_that_ends_sends_its_tracked_calls(rig):

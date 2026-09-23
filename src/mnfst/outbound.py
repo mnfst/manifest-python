@@ -22,7 +22,7 @@ import httpx
 from .bodies import content_type_of, encode_request_body, parse_request_body
 from .config import Config
 from .gate import should_capture
-from .heal_api import NOT_ATTEMPTED, AsyncHealApi, HealApi, HealEvent, internal_call
+from .heal_api import NOT_ATTEMPTED, NOT_SENT, AsyncHealApi, HealApi, HealEvent, internal_call
 from .merge import merge_healed_body
 from .response_capture import capture_httpx, capture_httpx_async, capture_requests
 from .tracking import CallBuffer
@@ -55,10 +55,13 @@ def _track(method: str, url: Any, status_code: int, started_at: float, elapsed_m
         return
     try:
         reported = tracked_url(str(url))
-        if reported is None or not 100 <= int(status_code) <= 599:
+        verb = (method or "GET").upper()
+        # The server refuses a whole batch over one out-of-range record.
+        if (reported is None or len(reported) > 4096 or len(verb) > 16
+                or not 100 <= int(status_code) <= 599):
             return
         tracker.record({
-            "traceId": uuid.uuid4().hex, "method": (method or "GET").upper(), "url": reported,
+            "traceId": uuid.uuid4().hex, "method": verb, "url": reported,
             "statusCode": int(status_code), "responseTimeMs": int(elapsed_ms),
             "occurredAt": datetime.fromtimestamp(started_at, timezone.utc).isoformat(),
         })
@@ -281,6 +284,9 @@ def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealA
                                _safe_request_content(request), response.status_code,
                                raw, elapsed_ms, response.extensions.get("mnfst_capture_incomplete", False))
             result = sync_api.heal(capture.payload)
+            if result is NOT_SENT:  # every heal slot busy: track it, never lose it
+                _track(request.method, request.url, response.status_code, started_at, elapsed_ms)
+                return response
             retry = _decide(config, sync_api, capture, result)
             if retry is None:
                 return response
@@ -408,6 +414,9 @@ def install_requests(config: Config, heal_api: HealApi) -> None:
             capture = _Capture(request.method, request.url, request.headers, content,
                                response.status_code, raw, elapsed_ms, getattr(response, "_mnfst_capture_incomplete", False))
             result = heal_api.heal(capture.payload)
+            if result is NOT_SENT:  # every heal slot busy: track it, never lose it
+                _track(request.method, request.url, response.status_code, started_at, elapsed_ms)
+                return response
             retry = _decide(config, heal_api, capture, result)
             if retry is None:
                 return response
