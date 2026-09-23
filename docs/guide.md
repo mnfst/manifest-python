@@ -70,7 +70,7 @@ Then send a JSON or `application/x-www-form-urlencoded` request that your test A
 ## Behavior and limits
 
 - Standard httpx and httpx2 transports and requests adapters are instrumented process-wide, including existing clients. Custom transports, aiohttp, browsers and other languages are not covered.
-- Any 4xx is sent to Manifest except 401, 402, 403 and 429. Successful calls, those four, and every 5xx pass through: authentication, billing, rate limiting and server faults are not repaired by editing the request. A network failure before an HTTP response also passes through.
+- Any 4xx is sent to Manifest for healing except 401, 402, 403 and 429. Successful calls, those four, and every 5xx are never healed: authentication, billing, rate limiting and server faults are not repaired by editing the request. They are tracked as metadata only (see "Data sent to Manifest"). A network failure before an HTTP response passes through untracked.
 - Manifest selects repairs. The SDK retries at most once per captured failure. The original error response is returned if healing is unavailable, no repair can be applied, or the retry has a transport error.
 - A successful streaming retry remains streamed. Error capture reads a bounded prefix and preserves the original response bytes for the caller. Error reads use the caller's read timeout; healing adds up to 60 seconds, and the retry uses the caller's timeout.
 - The sync heal worker pool permits eight concurrent calls. Excess calls fail open. Timed-out workers can continue in the background within that bound. Outcome reporting permits 64 concurrent reports per reporter.
@@ -79,7 +79,9 @@ Then send a JSON or `application/x-www-form-urlencoded` request that your test A
 
 ## Data sent to Manifest
 
-Failed request URLs, headers, JSON or form-urlencoded bodies, and error responses are sent to the configured server. Known credential names in query parameters and headers are masked. Credential-named **top-level** request body fields are withheld and restored for the retry.
+**Every call (metadata only).** For each call that is not healed, whatever its status, the SDK sends its method, URL without the query string, userinfo or fragment, status code, response time and time of the call. No headers and no bodies. Calls are batched and sent from a background thread, at most once per second; recording one never slows the call. Calls still buffered when a serverless runtime freezes the process can be lost.
+
+**Healable failures (full capture).** Failed request URLs, headers, JSON or form-urlencoded bodies, and error responses are sent to the configured server. Known credential names in query parameters and headers are masked. Credential-named **top-level** request body fields are withheld and restored for the retry.
 
 This is not general data-loss prevention: nested fields, arbitrary secret names, personal data, prompts and response bodies may still contain sensitive content. Only enable it for traffic you permit Manifest to process and store. The server does not receive the original credential values masked by the SDK.
 

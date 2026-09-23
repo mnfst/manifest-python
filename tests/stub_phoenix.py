@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 
@@ -16,6 +17,9 @@ class StubPhoenix:
         self.hello_status = 200
         self.hello_body = {"status": "ok", "project": {"name": "Stub project"}}
         self.outcomes: list[tuple[str, dict]] = []
+        self.tracked: list[dict] = []
+        self.requests_status = 202
+        self.requests_delay = 0.0
         self.disabled = False
         # Fired when a heal request arrives — the one moment a test can act
         # between the original call and the replay.
@@ -52,6 +56,15 @@ class StubPhoenix:
                         return self._reply(stub.hello_status, {"error": "unauthorized"})
                     stub.hellos.append(self._read_json())
                     return self._reply(200, stub.hello_body)
+                if self.path == "/v1/requests":
+                    body = self._read_json()
+                    if stub.requests_delay:
+                        time.sleep(stub.requests_delay)
+                    if stub.requests_status == 202:
+                        stub.tracked.extend(body["requests"])
+                    if stub.requests_status == 403:
+                        return self._reply(403, {"error": "project_disabled"})
+                    return self._reply(stub.requests_status, {"accepted": len(body["requests"])})
                 if self.path != "/v1/heal":
                     return self._reply(404, {"error": "not_found"})
                 if stub.disabled:

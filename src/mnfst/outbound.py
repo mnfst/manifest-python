@@ -9,9 +9,11 @@ healedRequest (url / headers / body) → retry once → report the outcome.
 """
 from __future__ import annotations
 
+import atexit
 import platform
 import time
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Mapping, Optional
 from urllib.parse import urlsplit
 
@@ -20,10 +22,11 @@ import httpx
 from .bodies import content_type_of, encode_request_body, parse_request_body
 from .config import Config
 from .gate import should_capture
-from .heal_api import NOT_ATTEMPTED, AsyncHealApi, HealApi, HealEvent, internal_call
+from .heal_api import NOT_ATTEMPTED, NOT_SENT, AsyncHealApi, HealApi, HealEvent, internal_call
 from .merge import merge_healed_body
 from .response_capture import capture_httpx, capture_httpx_async, capture_requests
-from .wire import capped_response_body, heal_payload, safe_error_text, traveling_body
+from .tracking import CallBuffer
+from .wire import capped_response_body, heal_payload, safe_error_text, tracked_url, traveling_body
 
 # Methods a retry may carry no body for.
 _BODYLESS = ("GET", "HEAD", "DELETE", "OPTIONS")
@@ -31,6 +34,8 @@ _BODYLESS = ("GET", "HEAD", "DELETE", "OPTIONS")
 _installed = False
 _installed_config: Optional[Config] = None
 _originals: dict = {}
+_tracker: Optional[CallBuffer] = None
+EXIT_FLUSH_SECONDS = 2.0
 
 
 def installed_config() -> Optional[Config]:
@@ -38,6 +43,39 @@ def installed_config() -> Optional[Config]:
     process-global and one-shot, so a second manifest() with different options
     cannot take effect — the entry point warns instead of silently ignoring."""
     return _installed_config
+
+
+# --- tracked calls -------------------------------------------------------------
+
+def _track(method: str, url: Any, status_code: int, started_at: float, elapsed_ms: int) -> None:
+    """Record a call that is not being healed. An in-memory append: never
+    blocks on the network, never reads the response, never raises."""
+    tracker = _tracker
+    if tracker is None:
+        return
+    try:
+        reported = tracked_url(str(url))
+        verb = (method or "GET").upper()
+        # The server refuses a whole batch over one out-of-range record.
+        if (reported is None or len(reported) > 4096 or len(verb) > 16
+                or not 100 <= int(status_code) <= 599):
+            return
+        tracker.record({
+            "traceId": uuid.uuid4().hex, "method": verb, "url": reported,
+            "statusCode": int(status_code), "responseTimeMs": int(elapsed_ms),
+            "occurredAt": datetime.fromtimestamp(started_at, timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+
+
+def _flush_at_exit() -> None:
+    tracker = _tracker
+    if tracker is not None:
+        try:
+            tracker.flush(EXIT_FLUSH_SECONDS)
+        except Exception:
+            pass
 
 
 # --- the loop, client-agnostic ---------------------------------------------
@@ -197,13 +235,18 @@ def _rebuild(request, retry: _Retry, mod=httpx):
 
 def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
                      async_heal_api: Optional[AsyncHealApi] = None) -> None:
-    global _installed, _installed_config
+    global _installed, _installed_config, _tracker
     if _installed:
         return
     sync_api = heal_api or HealApi(config)
     async_api = async_heal_api or AsyncHealApi(config)
     _installed = True
     _installed_config = config
+    # Every call that is not healed, any status, as metadata. Sync and async
+    # clients share one buffer; its worker sends through the sync client.
+    _tracker = CallBuffer(sync_api.send_requests)
+    atexit.unregister(_flush_at_exit)  # once, however many times install runs
+    atexit.register(_flush_at_exit)
     for mod in _httpx_modules():
         _install_httpx(mod, config, sync_api, async_api)
     install_requests(config, sync_api)
@@ -221,6 +264,7 @@ def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealA
 
     def patched_sync(self, request):
         original = _originals[sync_key]
+        started_at = time.time()
         started = time.monotonic()
         response = original(self, request)
         elapsed_ms = int((time.monotonic() - started) * 1000)
@@ -230,6 +274,7 @@ def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealA
             # Status decides capture, before the response body is touched — a
             # successful streamed response is never read here.
             if not should_capture(response.status_code) or not sync_api.healing_enabled():
+                _track(request.method, request.url, response.status_code, started_at, elapsed_ms)
                 return response
             try:
                 response, raw = capture_httpx(response, mod)
@@ -239,6 +284,9 @@ def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealA
                                _safe_request_content(request), response.status_code,
                                raw, elapsed_ms, response.extensions.get("mnfst_capture_incomplete", False))
             result = sync_api.heal(capture.payload)
+            if result is NOT_SENT:  # every heal slot busy: track it, never lose it
+                _track(request.method, request.url, response.status_code, started_at, elapsed_ms)
+                return response
             retry = _decide(config, sync_api, capture, result)
             if retry is None:
                 return response
@@ -265,6 +313,7 @@ def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealA
 
     async def patched_async(self, request):
         original = _originals[async_key]
+        started_at = time.time()
         started = time.monotonic()
         response = await original(self, request)
         elapsed_ms = int((time.monotonic() - started) * 1000)
@@ -272,6 +321,7 @@ def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealA
             return response
         try:
             if not should_capture(response.status_code) or not async_api.healing_enabled():
+                _track(request.method, request.url, response.status_code, started_at, elapsed_ms)
                 return response
             try:
                 response, raw = await capture_httpx_async(response, mod)
@@ -310,9 +360,10 @@ def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealA
 
 
 def uninstall_outbound() -> None:
-    global _installed, _installed_config
+    global _installed, _installed_config, _tracker
     if not _installed:
         return
+    _tracker = None
     for mod in _httpx_modules():
         sync_key, async_key = f"{mod.__name__}_sync", f"{mod.__name__}_async"
         if sync_key in _originals:
@@ -338,6 +389,7 @@ def install_requests(config: Config, heal_api: HealApi) -> None:
     def patched_send(self, request, stream=False, timeout=None, verify=True,
                      cert=None, proxies=None):
         original = _originals["requests_send"]
+        started_at = time.time()
         started = time.monotonic()
         response = original(self, request, stream=stream, timeout=timeout,
                             verify=verify, cert=cert, proxies=proxies)
@@ -348,6 +400,7 @@ def install_requests(config: Config, heal_api: HealApi) -> None:
             return response
         try:
             if not should_capture(response.status_code) or not heal_api.healing_enabled():
+                _track(request.method, request.url, response.status_code, started_at, elapsed_ms)
                 return response
             try:
                 response, raw = capture_requests(response)
@@ -361,6 +414,9 @@ def install_requests(config: Config, heal_api: HealApi) -> None:
             capture = _Capture(request.method, request.url, request.headers, content,
                                response.status_code, raw, elapsed_ms, getattr(response, "_mnfst_capture_incomplete", False))
             result = heal_api.heal(capture.payload)
+            if result is NOT_SENT:  # every heal slot busy: track it, never lose it
+                _track(request.method, request.url, response.status_code, started_at, elapsed_ms)
+                return response
             retry = _decide(config, heal_api, capture, result)
             if retry is None:
                 return response

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Mapping, Tuple
+from typing import Any, Mapping, Optional, Tuple
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 RESPONSE_BODY_CAP = 65536
@@ -62,6 +62,20 @@ def safe_url(url: str) -> str:
     # user:password@host is a credential too — keep host[:port] only.
     netloc = parts.netloc.rsplit("@", 1)[-1]
     return urlunsplit((parts.scheme, netloc, parts.path, query, ""))
+
+
+def tracked_url(url: str) -> Optional[str]:
+    """The URL a tracked call is reported under: scheme, host, port and path
+    only. The query, fragment and userinfo are where credentials ride, so they
+    never leave the process. None when the URL is not http(s)."""
+    try:
+        parts = urlsplit(str(url))
+    except Exception:
+        return None
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        return None
+    netloc = parts.netloc.rsplit("@", 1)[-1]
+    return urlunsplit((parts.scheme, netloc, parts.path, "", ""))
 
 
 def safe_headers(headers: Mapping[str, Any]) -> dict:

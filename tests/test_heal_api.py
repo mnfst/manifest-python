@@ -170,3 +170,23 @@ def test_outcome_reports_are_bounded_under_a_flood(monkeypatch):
     gate.set()
     for thread in list(api._pending):
         thread.join(timeout=2)
+
+
+def test_send_requests_raises_only_when_a_retry_could_help():
+    from mnfst.config import resolve_config
+    from mnfst.heal_api import HealApi
+    from tests.stub_phoenix import StubPhoenix
+    call = {"traceId": "t", "method": "GET", "url": "https://a.com/x", "statusCode": 200,
+            "responseTimeMs": 1, "occurredAt": "1970-01-01T00:00:00+00:00"}
+    with StubPhoenix() as stub:
+        api = HealApi(resolve_config(api_key="mnfx_k", url=stub.url))
+        for status in (202, 400, 401, 404):
+            stub.requests_status = status
+            api.send_requests([call])
+        for status in (429, 500, 503):
+            stub.requests_status = status
+            with pytest.raises(RuntimeError):
+                api.send_requests([call])
+        stub.requests_status = 403  # answered with {"error": "project_disabled"}
+        api.send_requests([call])
+        assert api.healing_enabled() is False
