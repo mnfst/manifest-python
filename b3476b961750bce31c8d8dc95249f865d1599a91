@@ -1,0 +1,19 @@
+pyproject.toml
+  s_580112fdafd6da::t_28d02f4dff2884 29-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b3476b961750bce31c8d8dc95249f865d1599a91",
+  "prompts": {},
+  "sessions": {
+    "s_580112fdafd6da": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f373e8371ffeFUJDdEwA5zRNCV",
+        "model": "auto"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
