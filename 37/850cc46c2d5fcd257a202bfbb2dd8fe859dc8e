@@ -1,0 +1,23 @@
+README.md
+  s_eb3d812ee7c509::t_b388d7c11d3e5d 25-27
+docs/sdk-flow-diagram.svg
+  s_eb3d812ee7c509::t_662c0a6b278c13 1-67
+pyproject.toml
+  s_eb3d812ee7c509::t_0448b49d5974f4 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "37850cc46c2d5fcd257a202bfbb2dd8fe859dc8e",
+  "prompts": {},
+  "sessions": {
+    "s_eb3d812ee7c509": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "870ec716-ab0e-4fba-98d8-d89732a224f1",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
