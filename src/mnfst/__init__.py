@@ -4,9 +4,11 @@
     manifest()  # once, at startup
 
 Instruments the process's HTTP clients (httpx and requests). When a call your
-app makes fails, the failing request and the API's error go to Phoenix; if the
-server returns a repaired body, the call is retried once. Successes are never
-touched. The surface is three options: key, url, on_heal — everything that
+app makes fails with a healable error, the failing request and the API's error
+go to Manifest; if the server returns a repaired body, the call is retried once.
+Every other call, successes included, is only recorded as metadata (method, URL
+without its query, status, timing) and sent in background batches: it is never
+modified and never slowed. The surface is three options: key, url, on_heal — everything that
 is policy (which providers and endpoints get healed, and how hard the server
 tries) is server-side configuration, editable in the https://dashboard.manifest.build.
 """

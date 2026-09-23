@@ -21,6 +21,7 @@ logger = logging.getLogger("mnfst")
 _HEAL_SLOTS = threading.BoundedSemaphore(8)
 MAX_HEAL_RESPONSE = 1_048_576
 HELLO_TIMEOUT_SECONDS = 5.0
+REQUESTS_TIMEOUT_SECONDS = 5.0
 
 def _bounded_call(call):
     if not _HEAL_SLOTS.acquire(blocking=False):
@@ -183,6 +184,31 @@ class HealApi:
             threading.Thread(target=_send, daemon=True).start()
         except Exception:
             pass
+
+    def send_requests(self, calls: list) -> None:
+        """Ship one batch of tracked calls to `POST /v1/requests`.
+
+        Raises only when a retry could help (network error, timeout, 429, 5xx)
+        so the buffer retries once; any other answer, including 404 from a
+        server that predates the route, drops the batch quietly. Runs on the
+        tracking worker thread, under the internal_call guard, so the send is
+        never tracked or healed by our own patch.
+        """
+        if not calls or not self._disable.enabled():
+            return
+        token = internal_call.set(True)
+        try:
+            response = self._client.post("/v1/requests", json={"requests": calls},
+                                         timeout=REQUESTS_TIMEOUT_SECONDS)
+            try:
+                if _is_app_disabled(response):
+                    self._disable.trip()
+                elif response.status_code == 429 or response.status_code >= 500:
+                    raise RuntimeError(f"tracked calls refused ({response.status_code})")
+            finally:
+                response.close()
+        finally:
+            internal_call.reset(token)
 
     def report_outcome(self, heal_attempt_id: str, retry_status_code: int,
                        error: Any = None, truncated: bool = False) -> None:
