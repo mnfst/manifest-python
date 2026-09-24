@@ -4,7 +4,7 @@
 
 # Manifest for Python
 
-**Turn 🔴 4xx API errors into 🟢 2xx in real time.**
+**Keep every API connection in your app up and running.**
 
 [![CI](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/mnfst?label=PyPI)](https://pypi.org/project/mnfst/)
@@ -14,11 +14,13 @@
 
 ## What is Manifest
 
-Manifest is a self-healing layer that fixes and retries failed API requests on the fly.
+Manifest lets you monitor all your API connections and make them more reliable.
 
-* 🎯 **Fix failures automatically** before they impact your users.
-* 🔔 **Get notified of root causes** so you can fix them permanently.
-* 🔌 **Works across your stack** with internal APIs, external services, and agent tools.
+* ⏰ **Stay ahead of breaking changes**: get warned before an API you depend on changes, so nothing breaks by surprise.
+* 🎯 **Never lose a request to a bad call**: failed requests are fixed and sent again on the fly, before your users notice.
+* 📡 **Know exactly how your APIs behave**: every call, every provider, every issue, live in one dashboard.
+
+Works with internal APIs, external services and agent tools.
 
 ## How it works
 
