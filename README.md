@@ -4,7 +4,7 @@
 
 # Manifest for Python
 
-**Keep every API connection in your app up and running.**
+**The API resilience layer for your Python apps.**
 
 [![CI](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mnfst/manifest-python/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/mnfst?label=PyPI)](https://pypi.org/project/mnfst/)
@@ -14,13 +14,11 @@
 
 ## What is Manifest
 
-Manifest lets you monitor all your API connections and make them more reliable.
+Manifest is the API resilience layer for your apps and agents. It works with every API they call: external services, your internal APIs and MCP tools.
 
-* ⏰ **Stay ahead of breaking changes**: get warned before an API you depend on changes, so nothing breaks by surprise.
-* 🎯 **Never lose a request to a bad call**: failed requests are fixed and sent again on the fly, before your users notice.
-* 📡 **Know exactly how your APIs behave**: every call, every provider, every issue, live in one dashboard.
-
-Works with internal APIs, external services and agent tools.
+* 🗺️ **See every API your app depends on**, and how reliable each one is.
+* 🎯 **Repair failed API requests on the fly**, so your app keeps working.
+* 🛠️ **Know what to fix in your code**, with a prompt for your coding agent.
 
 ## How it works
 
@@ -46,60 +44,56 @@ The prompt finds your entry point and stops to let you paste your key.
 
 ### Start with code
 
-```sh
-pip install mnfst
-```
-
-Run your app through the CLI, so Manifest loads before the first request:
-
-```sh
-export MNFST_KEY='your-project-key'
-mnfst run uvicorn main:app
-```
-
-`mnfst run` prefixes any command — `mnfst run gunicorn app:app`, `mnfst run celery -A tasks worker`. Or call `manifest()` yourself, once at startup:
-
-```python
-from mnfst import manifest
-
-manifest()  # Once, at startup.
-# Keep making your API calls as usual.
-```
-
-Use the source-level call when there is no command to prefix: AWS Lambda, a notebook, or a start command owned by a host dashboard.
-
-## Setup
-
 1. Create a project in your [Manifest dashboard](https://dashboard.manifest.build) and copy its project key.
-2. Set the key as an environment variable:
 
-```sh
-export MNFST_KEY='your-project-key'
-```
+2. Install the SDK:
 
-Load the SDK with `mnfst run`, or call `manifest()` once at startup, before your first request. Self-healing is enabled by default in your project settings.
+   ```sh
+   pip install mnfst
+   ```
 
-Check the install at any time with [`mnfst doctor`](docs/guide.md#verifying-the-installation).
+3. Set your key in the environment of your app:
+
+   ```sh
+   export MNFST_KEY='your-project-key'
+   ```
+
+4. Run your app through the CLI, so Manifest loads before the first request:
+
+   ```sh
+   mnfst run uvicorn main:app
+   ```
+
+   `mnfst run` goes in front of any start command, such as `mnfst run gunicorn app:app` or `mnfst run celery -A tasks worker`. Where there is no command to prefix (AWS Lambda, a notebook, or a start command owned by a host dashboard), call `manifest()` yourself, once at startup, before your first request:
+
+   ```python
+   from mnfst import manifest
+
+   manifest()  # Once, at startup.
+   # Keep making your API calls as usual.
+   ```
+
+5. Check the install at any time with [`mnfst doctor`](docs/guide.md#verifying-the-installation).
 
 ## Try it
 
-Send a request that would normally fail. Manifest catches it, repairs it, and retries:
+Send a request that fails with a 4xx error, such as a value the API rejects:
 
 ```python
 import httpx
 from mnfst import manifest
 
-manifest(on_heal=lambda e: print(f"Healed: {e.heal_status}, Response: {e.replay_status_code}"))
+manifest(on_heal=lambda e: print(f"[manifest] {e.heal_status} {e.replay_status_code}"))
 
 res = httpx.post(
     "https://api.example.com/orders",
-    json={"limit": 500},  # Invalid? Manifest fixes it and retries.
+    json={"limit": 500},  # rejected by the API
 )
-print(res.status_code)  # See the 200 OK response.
+print(res.status_code)
 ```
 
-Check your [Manifest dashboard](https://dashboard.manifest.build) to see all repairs and insights.
+The failed request appears in your [Manifest dashboard](https://dashboard.manifest.build), grouped with others like it in an issue. Once Manifest has a patch for that error, the next request that fails the same way is repaired and retried: `on_heal` reports `patched` or `unverified` with the retry's status code, and your app receives the answer to the retry.
 
 ## More
 
-[Configuration, limits & development](docs/guide.md) · [API contract](CONTRACT.md) · [Node.js SDK](https://github.com/mnfst/manifest-node) · [Website](https://manifest.build)
+[Documentation](https://docs.manifest.build) · [Configuration, limits & development](docs/guide.md) · [API contract](CONTRACT.md) · [Node.js SDK](https://github.com/mnfst/manifest-node) · [PHP SDK](https://github.com/mnfst/manifest-php) · [Website](https://manifest.build)
