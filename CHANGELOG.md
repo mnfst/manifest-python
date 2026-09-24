@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.2.0](https://github.com/mnfst/manifest-python/compare/v1.1.0...v1.2.0) (2026-09-23)
+
+
+### Features
+
+* track every call as metadata ([aa77c6e](https://github.com/mnfst/manifest-python/commit/aa77c6eaa5a5bf36a0c4152084d473953d5decae))
+* track every call as metadata ([56b4e62](https://github.com/mnfst/manifest-python/commit/56b4e62433a6a91115e0984959d350fbb5f929c2))
+
+
+### Bug Fixes
+
+* keep the SDK diagram out of the source distribution ([e37091f](https://github.com/mnfst/manifest-python/commit/e37091f43ea0069339de3a55b36262661f37b771))
+* keep the SDK diagram out of the source distribution ([b3476b9](https://github.com/mnfst/manifest-python/commit/b3476b961750bce31c8d8dc95249f865d1599a91))
+* make tracking fork-safe and never lose a healable failure ([2255767](https://github.com/mnfst/manifest-python/commit/22557670ebae37187b65c825735962f84532aa65))
+
+
+### Documentation
+
+* show call tracking in the SDK diagram ([37850cc](https://github.com/mnfst/manifest-python/commit/37850cc46c2d5fcd257a202bfbb2dd8fe859dc8e))
+
 ## [1.1.0](https://github.com/mnfst/manifest-python/compare/v1.0.0...v1.1.0) (2026-09-22)
 
 
