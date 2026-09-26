@@ -23,6 +23,8 @@ Call `manifest()` once at startup. Arguments override environment variables:
 | `key` | `MNFST_KEY` | Missing key disables the SDK with a warning |
 | `url` | `MNFST_URL` | `https://api.manifest.build` |
 | `on_heal` | — | Optional callback receiving a `HealEvent` |
+| `allowlist` | `MNFST_ALLOWLIST` | Every call eligible ([entries](../README.md#choosing-which-calls-reach-manifest)) |
+| `denylist` | `MNFST_DENYLIST` | None excluded |
 
 Use `url="http://127.0.0.1:5310"` with a local Manifest app, which must already be running and support the [SDK API contract](../CONTRACT.md). The hosted default requires a deployed, compatible app. Changing configuration after initialization requires a process restart.
 

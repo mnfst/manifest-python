@@ -94,6 +94,23 @@ print(res.status_code)
 
 The failed request appears in your [Manifest dashboard](https://dashboard.manifest.build), grouped with others like it in an issue. Once Manifest has a patch for that error, the next request that fails the same way is repaired and retried: `on_heal` reports `patched` or `unverified` with the retry's status code, and your app receives the answer to the retry.
 
+## Choosing which calls reach Manifest
+
+Keep calls out of Manifest entirely: they are neither repaired nor tracked, and nothing about them leaves your app. Each entry is a domain or a domain with a path:
+
+```sh
+MNFST_ALLOWLIST=stripe.com                       # only Stripe
+MNFST_ALLOWLIST=stripe.com/v1/payment_intents    # only this Stripe endpoint
+MNFST_DENYLIST=stripe.com/v1/charges,internal.example.com   # never these
+```
+
+- A domain covers its subdomains, with or without a path: `stripe.com` and `stripe.com/v1/charges` both match `api.stripe.com`.
+- A path matches whole segments: `/v1/charges` covers `/v1/charges/ch_123`, not `/v1/charges_export`. Paths are case-sensitive.
+- A scheme, port, query or fragment in an entry is ignored. `*` in a path is not supported yet: the entry is skipped with a warning, and an allowlist made only of skipped entries lets nothing through.
+- The denylist wins over the allowlist. With no allowlist, every call is eligible.
+
+Or in code: `manifest(denylist=["stripe.com/v1/charges"])`. An option overrides its environment variable. With `mnfst run`, set the environment variables: a later `manifest()` call cannot change the configuration.
+
 ## More
 
 [Documentation](https://docs.manifest.build) · [Configuration, limits & development](docs/guide.md) · [API contract](CONTRACT.md) · [Node.js SDK](https://github.com/mnfst/manifest-node) · [PHP SDK](https://github.com/mnfst/manifest-php) · [Website](https://manifest.build)
