@@ -1,0 +1,19 @@
+CONTRIBUTING.md
+  s_3539b913ab5f4e::t_ffa9614d82879c 26,30-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cdc8c57e241a401fbc0b654428ee459a9295aa71",
+  "prompts": {},
+  "sessions": {
+    "s_3539b913ab5f4e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b673d213-3f62-4ed7-b04b-ed53c44747e0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
