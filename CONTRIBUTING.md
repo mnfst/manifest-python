@@ -23,12 +23,13 @@ pip install -e '.[dev]'
 pytest -q       # Run tests
 python -m pip wheel --no-deps . --wheel-dir dist   # Build the wheel
 
-# Optional: point only at a disposable app (creates a test customer/project).
+# Optional: point only at a disposable Manifest server (creates a test customer and project).
 MNFST_TEST_APP_URL=http://127.0.0.1:5310 pytest -q tests/test_live_app.py
 ```
 
-CI runs the suite on Python 3.10, 3.13 and 3.14 and builds the wheel. The live
-app test runs locally because the app repository is private.
+CI runs the suite on Python 3.10, 3.13 and 3.14 and builds the wheel. The
+`test_live_app.py` test runs locally, because CI has no access to a Manifest
+server.
 
 ## Making Changes
 

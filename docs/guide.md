@@ -95,14 +95,14 @@ This is not general data-loss prevention: nested fields, arbitrary secret names,
 ```sh
 pip install -e '.[dev]'
 pytest -q
-# Optional: point only at a disposable app (creates a test customer/project).
+# Optional: point only at a disposable Manifest server (creates a test customer and project).
 MNFST_TEST_APP_URL=http://127.0.0.1:5310 pytest -q tests/test_live_app.py
 ```
 
-CI tests Python 3.10, 3.13 and 3.14 and builds the wheel. The live app test runs locally because the app repository is private; cross-repository CI needs separate checkout credentials. Validated against app commit `9ea359279577f99e4058b7600c75889b1a2c5881`.
+CI tests Python 3.10, 3.13 and 3.14, and CI builds the wheel. The `test_live_app.py` test runs locally, because CI has no access to a Manifest server.
 
 Use conventional commit titles for pull requests. `feat:` prepares a minor version, `fix:` prepares a patch version, and `!` or `BREAKING CHANGE:` prepares a major version. GitHub keeps one rolling `chore: release …` pull request; PyPI publishing starts only when that release pull request is merged.
 
-See [CONTRACT.md](../CONTRACT.md) for the wire protocol. Transport failures require the app's explicit `failure` outcome support; they must never be reported as HTTP success.
+See [CONTRACT.md](../CONTRACT.md) for the wire protocol. A transport failure needs the server's `failure` outcome. The SDK must never report a transport failure as an HTTP success.
 
 Adapted from [guillaumegay13/autofix-python](https://github.com/guillaumegay13/autofix-python), source commit `9a82d8235a037392826f982626f49422f3828213`.
