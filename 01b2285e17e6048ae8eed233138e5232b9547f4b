@@ -1,0 +1,27 @@
+tests/test_outbound_urllib.py
+  s_c5b1d403b935f2::t_5b93cdd1bffb6d 1-249
+CONTRIBUTING.md
+  s_c5b1d403b935f2::t_145aafb41d3761 59,63
+docs/guide.md
+  s_c5b1d403b935f2::t_06063de071aaf3 77
+src/mnfst/outbound.py
+  s_c5b1d403b935f2::t_dba583dbd84b19 1-2,14,31-32,267,389,619-706
+src/mnfst/response_capture.py
+  s_c5b1d403b935f2::t_317931956290d5 11,215-251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "01b2285e17e6048ae8eed233138e5232b9547f4b",
+  "prompts": {},
+  "sessions": {
+    "s_c5b1d403b935f2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7d51f9a9-bb6b-4923-b461-fb89b7220a0e",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
