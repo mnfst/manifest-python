@@ -17,7 +17,7 @@ Repository = "https://github.com/mnfst/manifest-python"
 Issues = "https://github.com/mnfst/manifest-python/issues"
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "requests>=2.31", "httpx2>=2,<3"]
+dev = ["pytest>=8", "requests>=2.31", "httpx2>=2,<3", "aiohttp>=3.13"]
 
 [build-system]
 requires = ["hatchling"]

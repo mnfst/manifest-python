@@ -1,4 +1,4 @@
-"""Auto-instrumentation of outbound HTTP clients (httpx, httpx2 and requests).
+"""Auto-instrumentation of outbound HTTP clients (httpx, httpx2, requests and aiohttp).
 Patches at TRANSPORT level: one hook per client library, so every client —
 including ones created before manifest() ran — is covered, and redirects,
 retries and streaming stay the client's business. The internal_call guard
@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Any, Mapping, Optional
 from urllib.parse import urlsplit
 
+import anyio
 import httpx
 
 from .bodies import content_type_of, encode_request_body, parse_request_body
@@ -25,7 +26,7 @@ from .url_filter import is_excluded
 from .gate import should_capture
 from .heal_api import NOT_ATTEMPTED, NOT_SENT, AsyncHealApi, HealApi, HealEvent, internal_call
 from .merge import merge_healed_body
-from .response_capture import capture_httpx, capture_httpx_async, capture_requests
+from .response_capture import capture_aiohttp, capture_httpx, capture_httpx_async, capture_requests
 from .tracking import CallBuffer
 from .wire import capped_response_body, heal_payload, safe_error_text, tracked_url, traveling_body
 
@@ -259,6 +260,7 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
     for mod in _httpx_modules():
         _install_httpx(mod, config, sync_api, async_api)
     install_requests(config, sync_api)
+    install_aiohttp(config, async_api)
     # Announce the install, so that silence stops being ambiguous: a healthy
     # app and a broken one are otherwise the same nothing on the dashboard.
     # Once per process, fire-and-forget — it must never delay startup, and a
@@ -379,6 +381,7 @@ def uninstall_outbound() -> None:
             mod.HTTPTransport.handle_request = _originals.pop(sync_key)
             mod.AsyncHTTPTransport.handle_async_request = _originals.pop(async_key)
     uninstall_requests()
+    uninstall_aiohttp()
     _installed = False
     _installed_config = None
 
@@ -466,3 +469,145 @@ def uninstall_requests() -> None:
         return
     import requests.adapters
     requests.adapters.HTTPAdapter.send = _originals.pop("requests_send")
+
+
+# --- aiohttp -------------------------------------------------------------------
+# aiohttp has no transport to swap; its client middleware chain (3.13+) is
+# the same seam. The SDK's middleware is appended innermost on every request,
+# so it sees each hop on the wire, the caller's own middlewares and
+# raise_for_status see the healed response, and sessions made before
+# install are covered.
+
+def install_aiohttp(config: Config, heal_api: AsyncHealApi) -> None:
+    try:
+        import aiohttp
+        from aiohttp.streams import StreamReader
+    except ImportError:
+        return  # aiohttp is not a runtime dependency; nothing to patch
+    if not (hasattr(StreamReader, "unread_data")
+            and "total_compressed_bytes" in getattr(StreamReader, "__slots__", ())):
+        return  # before 3.13 a capture cannot tell a decompressed body from a raw one
+    if "aiohttp_request" in _originals:
+        return
+
+    _originals["aiohttp_request"] = aiohttp.ClientSession._request
+
+    async def patched_request(self, *args, **kwargs):
+        try:
+            # A per-request `middlewares=` replaces the session's; ours rides either.
+            chain = kwargs.get("middlewares")
+            if chain is None:
+                chain = getattr(self, "_middlewares", ())
+            middleware = _aiohttp_middleware(config, heal_api, _aiohttp_deadline(self, kwargs))
+            kwargs["middlewares"] = (*chain, middleware)
+        except Exception:
+            pass  # the call goes out unobserved rather than not at all
+        return await _originals["aiohttp_request"](self, *args, **kwargs)
+
+    aiohttp.ClientSession._request = patched_request
+
+
+def uninstall_aiohttp() -> None:
+    if "aiohttp_request" not in _originals:
+        return
+    import aiohttp
+    aiohttp.ClientSession._request = _originals.pop("aiohttp_request")
+
+
+def _aiohttp_deadline(session, kwargs: dict) -> Optional[float]:
+    """When aiohttp's total timeout cancels this call, or None. That timeout
+    spans the middleware chain, so healing has to fit inside it."""
+    import aiohttp
+    timeout = kwargs.get("timeout", session.timeout)
+    if isinstance(timeout, aiohttp.ClientTimeout):
+        total = timeout.total
+    elif timeout is None or isinstance(timeout, (int, float)):
+        total = timeout
+    else:
+        total = session.timeout.total  # aiohttp's own "not given" sentinel
+    return anyio.current_time() + total if total else None
+
+
+async def _heal_in_time(heal_api: AsyncHealApi, payload: dict,
+                        deadline: Optional[float]) -> Optional[dict]:
+    """Heal within half of what is left before the deadline, keeping the
+    other half for the retry. Out of time is treated as no answer."""
+    if deadline is None:
+        return await heal_api.heal(payload)
+    with anyio.move_on_after((deadline - anyio.current_time()) / 2):
+        return await heal_api.heal(payload)
+    return None
+
+
+async def _aiohttp_request_content(request) -> Optional[bytes]:
+    """In-memory bodies (bytes, str, json=, form fields) are read; files,
+    multipart and async iterators are left unconsumed and captured as None."""
+    from aiohttp.payload import BytesPayload
+    body = request.body
+    if isinstance(body, bytes):
+        return body  # b"": no body at all
+    if isinstance(body, BytesPayload):
+        return await body.as_bytes()
+    return None
+
+
+async def _retarget(request, retry: _Retry) -> None:
+    """Apply a retry to the request in place, as aiohttp middlewares do."""
+    from multidict import CIMultiDict
+    from yarl import URL
+    request.url = URL(retry.url)  # same origin: _apply refuses anything else
+    request.headers = CIMultiDict(retry.headers)
+    await request.update_body(retry.content)
+
+
+def _aiohttp_middleware(config: Config, heal_api: AsyncHealApi, deadline: Optional[float]):
+    from multidict import CIMultiDict
+
+    async def mnfst_middleware(request, handler):
+        started_at = time.time()
+        started = time.monotonic()
+        response = await handler(request)
+        elapsed_ms = int((time.monotonic() - started) * 1000)
+        if internal_call.get() or _excluded(config, request.url):
+            return response
+        try:
+            # A failed websocket handshake is tracked, never replayed:
+            # ws_connect owns that connection.
+            if (not should_capture(response.status) or not heal_api.healing_enabled()
+                    or "upgrade" in request.headers):
+                _track(request.method, request.url, response.status, started_at, elapsed_ms)
+                return response
+            try:
+                raw, incomplete = await capture_aiohttp(response)
+            except Exception:
+                return response
+            capture = _Capture(request.method, str(request.url), CIMultiDict(request.headers),
+                               await _aiohttp_request_content(request), response.status,
+                               raw, elapsed_ms, incomplete)
+            result = await _heal_in_time(heal_api, capture.payload, deadline)
+            retry = _decide(config, heal_api, capture, result)
+            if retry is None:
+                return response
+            try:
+                await _retarget(request, retry)
+                retried = await handler(request)
+                retry_body, truncated = None, False
+                if retried.status >= 400:
+                    raw, incomplete = await capture_aiohttp(retried)
+                    retry_body, truncated = capped_response_body(raw)
+                    truncated = truncated or incomplete
+            except Exception as exc:
+                _report(heal_api, result, 0, safe_error_text(exc))
+                _emit(config, capture, result, None)
+                return response
+            _report(heal_api, result, retried.status, retry_body, truncated)
+            _emit(config, capture, result, retried.status)
+            try:
+                response.release()
+            except Exception:
+                pass
+            return retried
+        except Exception:
+            return response  # nothing in here may reach the caller
+
+    return mnfst_middleware

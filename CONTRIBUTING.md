@@ -55,10 +55,11 @@ only when that release pull request is merged.
 The SDK works with:
 - `httpx` and `httpx2`, sync and async
 - `requests`
+- `aiohttp` 3.13 and later
 - Python 3.10 through 3.14
 - `mnfst run <command>` or a `manifest()` call at startup
 
-Custom transports, `aiohttp` and other clients are not covered. See
+Custom transports, `urllib` and other clients are not covered. See
 [the coverage details](docs/guide.md).
 
 ## License
