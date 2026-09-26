@@ -1,3 +1,4 @@
+import gzip
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -14,12 +15,15 @@ from mnfst.outbound import _Retry, _rebuild, install_outbound, uninstall_outboun
 from tests.helpers import wait_for
 from tests.stub_phoenix import StubPhoenix
 
+BIG_ERROR_CHUNKS = 8  # 128 KiB, twice the capture cap
+
 
 class Provider:
     """400s any JSON body containing 'temperature', 200s otherwise.
 
     Extra routes: /v1/stream chunk-streams a 200; /v1/flaky 400s the first
-    request then hangs up on the retry (so the replay raises)."""
+    request then hangs up on the retry (so the replay raises); /v1/gzip 400s
+    gzip-encoded; /v1/big 400s with a chunked body larger than the capture cap."""
 
     def start(self):
         provider = self
@@ -60,6 +64,10 @@ class Provider:
                     return self._stream()
                 if route == "/v1/flaky":
                     return self._flaky(raw)
+                if route == "/v1/gzip":
+                    return self._gzip_error()
+                if route == "/v1/big":
+                    return self._big_error()
                 if route.startswith("/v1/status/"):  # replies with the status asked for
                     return self._reply(int(route.rsplit("/", 1)[1]),
                                        json.dumps({"error": {"message": "as requested"}}).encode())
@@ -111,6 +119,28 @@ class Provider:
                     chunk = f"chunk{index}".encode()
                     self.wfile.write(b"%x\r\n%s\r\n" % (len(chunk), chunk))
                     self.wfile.flush()
+                self.wfile.write(b"0\r\n\r\n")
+                self.wfile.flush()
+
+            def _gzip_error(self):
+                data = gzip.compress(json.dumps(
+                    {"error": {"message": "temperature unsupported"}}).encode())
+                self.send_response(400)
+                self.send_header("content-type", "application/json")
+                self.send_header("content-encoding", "gzip")
+                self.send_header("content-length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def _big_error(self):
+                # a chunked 400 larger than the capture cap
+                self.send_response(400)
+                self.send_header("content-type", "text/plain")
+                self.send_header("transfer-encoding", "chunked")
+                self.end_headers()
+                for _ in range(BIG_ERROR_CHUNKS):
+                    chunk = b"x" * 16384
+                    self.wfile.write(b"%x\r\n%s\r\n" % (len(chunk), chunk))
                 self.wfile.write(b"0\r\n\r\n")
                 self.wfile.flush()
 

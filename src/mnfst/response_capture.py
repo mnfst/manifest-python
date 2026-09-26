@@ -6,6 +6,7 @@ never enter this module. Capture uses the original client's read timeout.
 from __future__ import annotations
 
 import io
+import warnings
 import zlib
 from types import ModuleType
 from typing import Iterator
@@ -181,3 +182,33 @@ def capture_requests(response):
     response.raw._original_response = getattr(original, "_original_response", None)
     raw = b''.join(chunks)[:RESPONSE_BODY_CAP + 1]
     return response, _decode(raw, response.headers.get('content-encoding', ''))
+
+
+async def capture_aiohttp(response):
+    """Read up to the cap from an aiohttp failure, then push those bytes back
+    onto the head of its stream: read(), json() and iterating `.content` all
+    still see the whole body. Returns (decoded prefix, incomplete)."""
+    stream = response.content
+    chunks, size = [], 0
+    incomplete = True
+    try:
+        while size <= RESPONSE_BODY_CAP:
+            chunk = await stream.readany()
+            if not chunk:
+                incomplete = False
+                break
+            chunks.append(chunk)
+            size += len(chunk)
+    finally:
+        # On a read error the bytes go back all the same; the caller's own
+        # read then meets the error.
+        data = b''.join(chunks)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', DeprecationWarning)
+            stream.unread_data(data)
+    raw = data[:RESPONSE_BODY_CAP + 1]
+    # aiohttp decompresses on the fly unless told not to; only undecoded
+    # bytes still need it. (The shared empty-body stream has no counter.)
+    if getattr(stream, 'total_compressed_bytes', None) is None:
+        raw = _decode(raw, response.headers.get('content-encoding', ''))
+    return raw, incomplete
