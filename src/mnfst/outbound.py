@@ -1,4 +1,5 @@
-"""Auto-instrumentation of outbound HTTP clients (httpx, httpx2, requests and aiohttp).
+"""Auto-instrumentation of outbound HTTP clients (httpx, httpx2, requests,
+aiohttp and urllib.request).
 Patches at TRANSPORT level: one hook per client library, so every client —
 including ones created before manifest() ran — is covered, and redirects,
 retries and streaming stay the client's business. The internal_call guard
@@ -10,6 +11,7 @@ healedRequest (url / headers / body) → retry once → report the outcome.
 from __future__ import annotations
 
 import atexit
+import copy
 import platform
 import time
 import uuid
@@ -26,7 +28,8 @@ from .url_filter import is_excluded
 from .gate import should_capture
 from .heal_api import NOT_ATTEMPTED, NOT_SENT, AsyncHealApi, HealApi, HealEvent, internal_call
 from .merge import merge_healed_body
-from .response_capture import capture_aiohttp, capture_httpx, capture_httpx_async, capture_requests
+from .response_capture import (capture_aiohttp, capture_httpx, capture_httpx_async,
+                               capture_requests, capture_urllib)
 from .tracking import CallBuffer
 from .wire import capped_response_body, heal_payload, safe_error_text, tracked_url, traveling_body
 
@@ -261,6 +264,7 @@ def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
         _install_httpx(mod, config, sync_api, async_api)
     install_requests(config, sync_api)
     install_aiohttp(config, async_api)
+    install_urllib(config, sync_api)
     # Announce the install, so that silence stops being ambiguous: a healthy
     # app and a broken one are otherwise the same nothing on the dashboard.
     # Once per process, fire-and-forget — it must never delay startup, and a
@@ -382,6 +386,7 @@ def uninstall_outbound() -> None:
             mod.AsyncHTTPTransport.handle_async_request = _originals.pop(async_key)
     uninstall_requests()
     uninstall_aiohttp()
+    uninstall_urllib()
     _installed = False
     _installed_config = None
 
@@ -611,3 +616,91 @@ def _aiohttp_middleware(config: Config, heal_api: AsyncHealApi, deadline: Option
             return response  # nothing in here may reach the caller
 
     return mnfst_middleware
+
+
+# --- urllib.request ------------------------------------------------------------
+# AbstractHTTPHandler.do_open is urllib's one hop on the wire, shared by the
+# http and https handlers. It returns the raw response for any status, before
+# urllib's processors turn a 4xx into an HTTPError and follow redirects.
+
+def install_urllib(config: Config, heal_api: HealApi) -> None:
+    import urllib.request
+    if "urllib_do_open" in _originals:
+        return
+
+    _originals["urllib_do_open"] = urllib.request.AbstractHTTPHandler.do_open
+
+    def patched_do_open(self, http_class, req, **http_conn_args):
+        original = _originals["urllib_do_open"]
+        started_at = time.time()
+        started = time.monotonic()
+        response = original(self, http_class, req, **http_conn_args)
+        elapsed_ms = int((time.monotonic() - started) * 1000)
+        if internal_call.get() or _excluded(config, req.full_url):
+            return response
+        method = req.get_method()
+        try:
+            if not should_capture(response.status) or not heal_api.healing_enabled():
+                _track(method, req.full_url, response.status, started_at, elapsed_ms)
+                return response
+            try:
+                response, raw, incomplete = capture_urllib(response)
+            except Exception:
+                return response
+            # A file or iterable body is not bytes: capture without it, so an
+            # upload is never consumed.
+            data = req.data
+            content = data if isinstance(data, bytes) else (b"" if data is None else None)
+            capture = _Capture(method, req.full_url, dict(req.header_items()), content,
+                               response.status, raw, elapsed_ms, incomplete)
+            result = heal_api.heal(capture.payload)
+            if result is NOT_SENT:  # every heal slot busy: track it, never lose it
+                _track(method, req.full_url, response.status, started_at, elapsed_ms)
+                return response
+            retry = _decide(config, heal_api, capture, result)
+            if retry is None:
+                return response
+            try:
+                retried = original(self, http_class, _retarget_urllib(req, retry), **http_conn_args)
+                retry_body, truncated = None, False
+                if retried.status >= 400:
+                    retried, raw, incomplete = capture_urllib(retried)
+                    retry_body, truncated = capped_response_body(raw)
+                    truncated = truncated or incomplete
+            except Exception as exc:
+                _report(heal_api, result, 0, safe_error_text(exc))
+                _emit(config, capture, result, None)
+                return response
+            _report(heal_api, result, retried.status, retry_body, truncated)
+            _emit(config, capture, result, retried.status)
+            try:
+                response.close()
+            except Exception:
+                pass
+            return retried
+        except Exception:
+            return response  # nothing in here may reach the caller
+
+    urllib.request.AbstractHTTPHandler.do_open = patched_do_open
+
+
+def uninstall_urllib() -> None:
+    if "urllib_do_open" not in _originals:
+        return
+    import urllib.request
+    urllib.request.AbstractHTTPHandler.do_open = _originals.pop("urllib_do_open")
+
+
+def _retarget_urllib(req, retry: _Retry):
+    """A copy of the request with the retry applied. The processors that set
+    Content-Length and Host already ran on the original; http.client sizes a
+    bytes body itself, and Host rides in the captured headers."""
+    rebuilt = copy.copy(req)
+    rebuilt.full_url = retry.url  # same origin: _apply refuses anything else
+    rebuilt.host = req.host  # the proxy, when there is one
+    if req.has_proxy():
+        rebuilt.selector = rebuilt.full_url
+    rebuilt.headers, rebuilt.unredirected_hdrs = dict(retry.headers), {}
+    rebuilt.method = req.get_method()  # else urllib infers POST from any body
+    rebuilt.data = retry.content
+    return rebuilt

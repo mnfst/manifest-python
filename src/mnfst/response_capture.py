@@ -8,6 +8,7 @@ from __future__ import annotations
 import io
 import warnings
 import zlib
+from itertools import chain
 from types import ModuleType
 from typing import Iterator
 
@@ -151,7 +152,6 @@ class _Reader(io.RawIOBase):
 
 
 def capture_requests(response):
-    from itertools import chain
     from urllib3.response import HTTPResponse
     if response._content is not False:
         return response, response.content[:RESPONSE_BODY_CAP + 1]
@@ -212,3 +212,40 @@ async def capture_aiohttp(response):
     if getattr(stream, 'total_compressed_bytes', None) is None:
         raw = _decode(raw, response.headers.get('content-encoding', ''))
     return raw, incomplete
+
+
+def capture_urllib(response):
+    """Read up to the cap from a stdlib http.client failure, then give the
+    same response object a body of those bytes followed by the unread rest.
+    It stays an HTTPResponse, so an HTTPError built on it, or a caller
+    without urllib's error processing, reads the whole body. Returns
+    (response, decoded prefix, incomplete)."""
+    rest = _clone(response)  # reads the connection from here on
+    chunks, size = [], 0
+    incomplete = True
+    iterator = iter(lambda: rest.read(65536), b'')
+    try:
+        for chunk in iterator:
+            chunks.append(chunk)
+            size += len(chunk)
+            if size > RESPONSE_BODY_CAP:
+                break
+        else:
+            incomplete = False
+    except Exception as exc:
+        error = exc
+        def failed():
+            raise error
+            yield  # pragma: no cover
+        iterator = failed()
+    # The replacement body is already de-chunked and has no known length.
+    response.fp = io.BufferedReader(_Reader(chain(chunks, iterator), rest))
+    response.chunked, response.length = False, None
+    raw = b''.join(chunks)[:RESPONSE_BODY_CAP + 1]
+    return response, _decode(raw, response.headers.get('content-encoding', '')), incomplete
+
+
+def _clone(response):
+    twin = type(response).__new__(type(response))
+    twin.__dict__.update(response.__dict__)
+    return twin
