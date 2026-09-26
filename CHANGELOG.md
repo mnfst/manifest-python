@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.3.0](https://github.com/mnfst/manifest-python/compare/v1.2.0...v1.3.0) (2026-09-26)
+
+
+### Features
+
+* choose which calls reach Manifest with MNFST_ALLOWLIST / MNFST_DENYLIST ([#42](https://github.com/mnfst/manifest-python/issues/42)) ([0ffb856](https://github.com/mnfst/manifest-python/commit/0ffb856bc3634b4ccf37cd47b84ef73de841d621))
+* heal and track aiohttp calls ([#43](https://github.com/mnfst/manifest-python/issues/43)) ([d656ff3](https://github.com/mnfst/manifest-python/commit/d656ff35f06e8c68d2fdd259992abc4ba0c69b10))
+* heal and track urllib.request calls ([#45](https://github.com/mnfst/manifest-python/issues/45)) ([cba288b](https://github.com/mnfst/manifest-python/commit/cba288bdd621eeb946642cd3a0c8088643cd8c3b))
+* heal and track urllib.request calls ([#46](https://github.com/mnfst/manifest-python/issues/46)) ([bebfe4f](https://github.com/mnfst/manifest-python/commit/bebfe4fd77386a2844dda01195f24782a5c0b07f))
+
+
+### Bug Fixes
+
+* doctor reads the key from the project's .env files ([#41](https://github.com/mnfst/manifest-python/issues/41)) ([06b446b](https://github.com/mnfst/manifest-python/commit/06b446b6d0c747a7eb34ff8efce6d3e55c13d7bf))
+
+
+### Documentation
+
+* a warmer pitch at the top of the README ([f04f089](https://github.com/mnfst/manifest-python/commit/f04f0899547b7e42938c5aa9991ffabc95711b53))
+* lead the README with what Manifest does today ([b9d4293](https://github.com/mnfst/manifest-python/commit/b9d4293dd821f2da51280095c989200ef26b473b))
+* lead the README with what Manifest does today ([5b77dd5](https://github.com/mnfst/manifest-python/commit/5b77dd5437c4f746dcf419be429dc694e7b70e0d))
+* **readme:** present Manifest as the API resilience layer ([a66e467](https://github.com/mnfst/manifest-python/commit/a66e4677b9e38f5ce964e2825c47529b7217b3c1))
+* remove references to the private app repository ([#6](https://github.com/mnfst/manifest-python/issues/6)) ([e16c035](https://github.com/mnfst/manifest-python/commit/e16c035116a636d65e8c19f23d0980656d6db2bd))
+
 ## [1.2.0](https://github.com/mnfst/manifest-python/compare/v1.1.0...v1.2.0) (2026-09-23)
 
 
