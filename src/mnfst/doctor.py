@@ -14,12 +14,14 @@ announces on, so it proves the same credential the heal path will use.
 """
 from __future__ import annotations
 
+import os
 import sys
 from dataclasses import dataclass
 from typing import Callable, Optional
 
 import httpx
 
+from . import _dotenv
 from .config import HEAL_TIMEOUT_SECONDS, Config, resolve_config
 from .outbound import installed_config
 from .version import VERSION
@@ -108,14 +110,31 @@ def check_init() -> Check:
                  "manifest() at startup")
 
 
+def resolve_doctor_config() -> Config:
+    """The configuration the doctor checks: the environment first, then the
+    project's dotenv files, where python-dotenv or pydantic-settings load
+    `MNFST_KEY` from for the app itself. `manifest()` reads only the
+    environment (see `resolve_config`); the doctor runs as its own process,
+    so it reads the files too, or it reports a working install as broken.
+    """
+    api_key = os.environ.get("MNFST_KEY") or None
+    url = os.environ.get("MNFST_URL") or None
+    if not api_key or not url:
+        found = _dotenv.read(os.getcwd())
+        api_key = api_key or found.get("MNFST_KEY")
+        url = url or found.get("MNFST_URL")
+    return resolve_config(api_key=api_key, url=url)
+
+
 def checks(probe: Callable[[Config], Check] = probe_key) -> list[Check]:
-    config = resolve_config()
+    config = resolve_doctor_config()
     result = [Check(OK, "SDK installed", f"mnfst {VERSION}")]
     if config.api_key:
         result.append(Check(OK, "MNFST_KEY set", mask_key(config.api_key)))
         result.append(probe(config))
     else:
-        result.append(Check(FAIL, "MNFST_KEY set", "not set in this environment"))
+        result.append(Check(FAIL, "MNFST_KEY set",
+                             "not set in the environment or the project's .env"))
         result.append(Check(WARN, "Key valid", "skipped; no key to check"))
     result.append(check_init())
     return result

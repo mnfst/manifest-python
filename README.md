@@ -52,7 +52,7 @@ The prompt finds your entry point and stops to let you paste your key.
    pip install mnfst
    ```
 
-3. Set your key in the environment of your app:
+3. Set your key in the environment of your app, or in the project's `.env` file:
 
    ```sh
    export MNFST_KEY='your-project-key'
