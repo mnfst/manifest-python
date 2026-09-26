@@ -1,0 +1,24 @@
+src/mnfst/_dotenv.py
+  s_6f64c1294b31c5::t_81c02da0c47a72 1-49
+src/mnfst/doctor.py
+  s_6f64c1294b31c5::t_08d26c684d312f 113-128,130,136-137
+  s_6f64c1294b31c5::t_b008c3043307f6 17,24
+tests/test_doctor.py
+  s_6f64c1294b31c5::t_51b1a86a19f138 100-163
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d24c04a4153e86c64e22c1c459c9afedb01d3898",
+  "prompts": {},
+  "sessions": {
+    "s_6f64c1294b31c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a3865711-d1b6-424f-95c3-1dd78f4091fd",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
