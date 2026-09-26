@@ -1,0 +1,43 @@
+CONTRIBUTING.md
+  s_c5b1d403b935f2::t_9c88ad1c31db86 58,62
+tests/test_outbound_httpx.py
+  s_c5b1d403b935f2::t_475c720fa076f4 67-70
+  s_c5b1d403b935f2::t_5e25cefc7191c0 125-146
+  s_c5b1d403b935f2::t_352070a14e4290 25-26
+  s_c5b1d403b935f2::t_aa5ce021f29ff5 1
+  s_c5b1d403b935f2::t_4506a0fe11b504 18-19
+pyproject.toml
+  s_c5b1d403b935f2::t_687cdaf3501144 20
+tests/test_outbound_aiohttp.py
+  s_c5b1d403b935f2::t_aa5782879e9c36 4,255-277
+  s_c5b1d403b935f2::t_a3c02805cce2f5 187-188,190-191
+  s_c5b1d403b935f2::t_58175fa2ad30d3 1-3,5-186,189,192-195,197-201,203-254,278-306
+  s_c5b1d403b935f2::t_626f2c0c73c1d1 196,202
+docs/guide.md
+  s_c5b1d403b935f2::t_9c88ad1c31db86 15,77,80
+src/mnfst/outbound.py
+  s_c5b1d403b935f2::t_a2483d70afaf83 1,29,263,384,472-474,476-486,490-495,505-516,542-562,564-586,588-613
+  s_c5b1d403b935f2::t_ad7da1be9a28a2 20,517-541,563,587
+  s_c5b1d403b935f2::t_74eebac9db2c7f 487,496-504
+  s_c5b1d403b935f2::t_687cdaf3501144 475,488-489
+src/mnfst/response_capture.py
+  s_c5b1d403b935f2::t_687cdaf3501144 212
+  s_c5b1d403b935f2::t_b91aeddfeb2e8c 9,185-202,205-210,213-214
+  s_c5b1d403b935f2::t_bd039d05555f5b 203-204,211
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "008d7891e95095ffde3d297c6015f99dca427d11",
+  "prompts": {},
+  "sessions": {
+    "s_c5b1d403b935f2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7d51f9a9-bb6b-4923-b461-fb89b7220a0e",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
