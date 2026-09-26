@@ -63,6 +63,9 @@ mnfst doctor
   ✅ Preload active         the SDK runs in this process
 ```
 
+It reads `MNFST_KEY` and `MNFST_URL` from the environment first, then from the
+project's `.env.local` or `.env` (the first file that sets a variable wins) —
+where `python-dotenv` or `pydantic-settings` load them from for the app itself.
 It verifies the SDK imports, the key is readable (never printed in full), the key is accepted by a single authenticated round trip, and `manifest()` ran in the process that makes the calls. A rejected or unreachable key is otherwise indistinguishable from a healthy install: both are silence. Run it through `mnfst run` — `mnfst run mnfst doctor` — for the preload check to see the same startup path as your app. The command exits non-zero if any check fails.
 
 Then send a JSON or `application/x-www-form-urlencoded` request that your test API rejects with 400, 404, 422 or any other request-side 4xx. The failure appears in your [project's dashboard](https://dashboard.manifest.build), and the `on_heal` callback reports the repair result. A successful request alone does not contact Manifest. Outcome reports are asynchronous, so a short-lived script may exit before the report is delivered.

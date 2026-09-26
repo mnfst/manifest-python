@@ -97,6 +97,70 @@ def test_unloaded_sdk_is_a_failure(monkeypatch):
     assert "mnfst run" in results[-1].detail
 
 
+def dont_probe(_config):
+    """A probe a dotenv test never reaches, if the key was misread."""
+    return Check("ok", "Key valid", "accepted")
+
+
+def test_key_is_read_from_the_project_env_file(tmp_path, monkeypatch):
+    monkeypatch.delenv("MNFST_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text(f"MNFST_KEY={KEY}\n")
+    monkeypatch.setattr("mnfst.doctor.installed_config", lambda: object())
+    results = checks(probe=dont_probe)
+    assert results[1].status == "ok"
+    assert results[1].detail == mask_key(KEY)
+
+
+def test_env_local_wins_over_env(tmp_path, monkeypatch):
+    monkeypatch.delenv("MNFST_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("MNFST_KEY=from_env\n")
+    (tmp_path / ".env.local").write_text("MNFST_KEY=from_env_local\n")
+    monkeypatch.setattr("mnfst.doctor.installed_config", lambda: object())
+    results = checks(probe=dont_probe)
+    assert results[1].detail == mask_key("from_env_local")
+
+
+def test_export_and_quotes_are_supported(tmp_path, monkeypatch):
+    monkeypatch.delenv("MNFST_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text('export MNFST_KEY="quoted-key-value"\n')
+    monkeypatch.setattr("mnfst.doctor.installed_config", lambda: object())
+    results = checks(probe=dont_probe)
+    assert results[1].detail == mask_key("quoted-key-value")
+
+
+def test_comments_are_not_values(tmp_path, monkeypatch):
+    monkeypatch.delenv("MNFST_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text(
+        "# MNFST_KEY=commented-out\n"
+        f"MNFST_KEY={KEY} # the project key\n"
+    )
+    monkeypatch.setattr("mnfst.doctor.installed_config", lambda: object())
+    results = checks(probe=dont_probe)
+    assert results[1].detail == mask_key(KEY)
+
+
+def test_environment_wins_over_the_project_env_file(tmp_path, monkeypatch):
+    monkeypatch.setenv("MNFST_KEY", "from_environment")
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("MNFST_KEY=from_file\n")
+    monkeypatch.setattr("mnfst.doctor.installed_config", lambda: object())
+    results = checks(probe=dont_probe)
+    assert results[1].detail == mask_key("from_environment")
+
+
+def test_missing_key_detail_mentions_the_project_env_file(tmp_path, monkeypatch):
+    monkeypatch.delenv("MNFST_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("mnfst.doctor.installed_config", lambda: object())
+    results = checks()
+    assert results[1].status == "fail"
+    assert ".env" in results[1].detail
+
+
 def test_render_marks_every_status():
     text = render([Check("ok", "a"), Check("fail", "b"), Check("warn", "c")])
     assert "✅" in text and "❌" in text and "⚠️" in text
