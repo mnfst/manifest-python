@@ -21,6 +21,7 @@ import httpx
 
 from .bodies import content_type_of, encode_request_body, parse_request_body
 from .config import Config
+from .url_filter import is_excluded
 from .gate import should_capture
 from .heal_api import NOT_ATTEMPTED, NOT_SENT, AsyncHealApi, HealApi, HealEvent, internal_call
 from .merge import merge_healed_body
@@ -67,6 +68,14 @@ def _track(method: str, url: Any, status_code: int, started_at: float, elapsed_m
         })
     except Exception:
         pass
+
+
+def _excluded(config: Config, url: Any) -> bool:
+    """A call kept out of Manifest by the allowlist or denylist: never healed, never tracked."""
+    try:
+        return is_excluded(config.allowlist, config.denylist, str(url))
+    except Exception:
+        return False
 
 
 def _flush_at_exit() -> None:
@@ -268,7 +277,7 @@ def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealA
         started = time.monotonic()
         response = original(self, request)
         elapsed_ms = int((time.monotonic() - started) * 1000)
-        if internal_call.get():
+        if internal_call.get() or _excluded(config, request.url):
             return response
         try:
             # Status decides capture, before the response body is touched — a
@@ -317,7 +326,7 @@ def _install_httpx(mod, config: Config, sync_api: HealApi, async_api: AsyncHealA
         started = time.monotonic()
         response = await original(self, request)
         elapsed_ms = int((time.monotonic() - started) * 1000)
-        if internal_call.get():
+        if internal_call.get() or _excluded(config, request.url):
             return response
         try:
             if not should_capture(response.status_code) or not async_api.healing_enabled():
@@ -396,7 +405,7 @@ def install_requests(config: Config, heal_api: HealApi) -> None:
         # `.elapsed` is only stamped by Session.send, after the adapter
         # returns — so time the call here instead.
         elapsed_ms = int((time.monotonic() - started) * 1000)
-        if internal_call.get():
+        if internal_call.get() or _excluded(config, request.url):
             return response
         try:
             if not should_capture(response.status_code) or not heal_api.healing_enabled():
