@@ -1,0 +1,44 @@
+src/mnfst/_dotenv.py
+  s_6f64c1294b31c5::t_81c02da0c47a72 1-49
+src/mnfst/doctor.py
+  s_6f64c1294b31c5::t_b008c3043307f6 17,24
+  s_6f64c1294b31c5::t_08d26c684d312f 113-128,130,136-137
+tests/test_doctor.py
+  s_6f64c1294b31c5::t_51b1a86a19f138 100-163
+docs/guide.md
+  s_de9546b9854ad9::t_42aff72bbfe8bd 66-68
+README.md
+  s_9f9e109bb173c1::t_0bb2ce2ece760d 55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2c0e2d8c55dd59d89b6b4019139ec1332c24ad34",
+  "prompts": {},
+  "sessions": {
+    "s_6f64c1294b31c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a3865711-d1b6-424f-95c3-1dd78f4091fd",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    },
+    "s_9f9e109bb173c1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a3ce7514ba7fef4e7",
+        "model": "unknown"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    },
+    "s_de9546b9854ad9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "252ec711-d414-48ae-bddf-22b35395ba43",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Guillaume Gay <guillaume.gay@protonmail.com>"
+    }
+  }
+}
