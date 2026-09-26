@@ -56,10 +56,11 @@ The SDK works with:
 - `httpx` and `httpx2`, sync and async
 - `requests`
 - `aiohttp` 3.13 and later
+- `urllib.request`
 - Python 3.10 through 3.14
 - `mnfst run <command>` or a `manifest()` call at startup
 
-Custom transports, `urllib` and other clients are not covered. See
+Custom transports and other clients are not covered. See
 [the coverage details](docs/guide.md).
 
 ## License
