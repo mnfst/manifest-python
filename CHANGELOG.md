@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/mnfst/manifest-python/compare/v1.3.0...v1.3.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* close the critical and high review findings ([#49](https://github.com/mnfst/manifest-python/issues/49)) ([b875ecd](https://github.com/mnfst/manifest-python/commit/b875ecd2d649907771c7ba6f8386184fad87140f))
+
 ## [1.3.0](https://github.com/mnfst/manifest-python/compare/v1.2.0...v1.3.0) (2026-09-26)
 
 
