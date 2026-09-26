@@ -6,6 +6,7 @@ never enter this module. Capture uses the original client's read timeout.
 from __future__ import annotations
 
 import io
+import time
 import warnings
 import zlib
 from itertools import chain
@@ -15,6 +16,10 @@ from typing import Iterator
 import httpx
 
 from .wire import RESPONSE_BODY_CAP
+
+# Past this, capture stops reading and hands the rest of the stream back to the
+# caller: a server that trickles a failed response must not stall it indefinitely.
+CAPTURE_DEADLINE_SECONDS = 1.0
 
 # httpx and httpx2 are separate packages with the same API. A restored
 # response must be built from the package that produced the original, and
@@ -77,11 +82,12 @@ def capture_httpx(response, mod: ModuleType = httpx):
     chunks, size = [], 0
     incomplete = True
     iterator = iter(response.stream)
+    deadline = time.monotonic() + CAPTURE_DEADLINE_SECONDS
     try:
         for chunk in iterator:
             chunks.append(chunk)
             size += len(chunk)
-            if size > RESPONSE_BODY_CAP:
+            if size > RESPONSE_BODY_CAP or time.monotonic() > deadline:
                 break
         else:
             incomplete = False
@@ -108,11 +114,12 @@ async def capture_httpx_async(response, mod: ModuleType = httpx):
     chunks, size = [], 0
     incomplete = True
     iterator = response.stream.__aiter__()
+    deadline = time.monotonic() + CAPTURE_DEADLINE_SECONDS
     try:
         async for chunk in iterator:
             chunks.append(chunk)
             size += len(chunk)
-            if size > RESPONSE_BODY_CAP:
+            if size > RESPONSE_BODY_CAP or time.monotonic() > deadline:
                 break
         else:
             incomplete = False
@@ -159,11 +166,12 @@ def capture_requests(response):
     chunks, size = [], 0
     incomplete = True
     iterator = original.stream(amt=65536, decode_content=False)
+    deadline = time.monotonic() + CAPTURE_DEADLINE_SECONDS
     try:
         for chunk in iterator:
             chunks.append(chunk)
             size += len(chunk)
-            if size > RESPONSE_BODY_CAP:
+            if size > RESPONSE_BODY_CAP or time.monotonic() > deadline:
                 break
         else:
             incomplete = False
@@ -191,8 +199,9 @@ async def capture_aiohttp(response):
     stream = response.content
     chunks, size = [], 0
     incomplete = True
+    deadline = time.monotonic() + CAPTURE_DEADLINE_SECONDS
     try:
-        while size <= RESPONSE_BODY_CAP:
+        while size <= RESPONSE_BODY_CAP and time.monotonic() <= deadline:
             chunk = await stream.readany()
             if not chunk:
                 incomplete = False
@@ -224,11 +233,12 @@ def capture_urllib(response):
     chunks, size = [], 0
     incomplete = True
     iterator = iter(lambda: rest.read(65536), b'')
+    deadline = time.monotonic() + CAPTURE_DEADLINE_SECONDS
     try:
         for chunk in iterator:
             chunks.append(chunk)
             size += len(chunk)
-            if size > RESPONSE_BODY_CAP:
+            if size > RESPONSE_BODY_CAP or time.monotonic() > deadline:
                 break
         else:
             incomplete = False

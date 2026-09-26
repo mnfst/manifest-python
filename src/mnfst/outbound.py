@@ -15,6 +15,7 @@ import copy
 import platform
 import time
 import uuid
+import warnings
 from datetime import datetime, timezone
 from typing import Any, Mapping, Optional
 from urllib.parse import urlsplit
@@ -141,7 +142,10 @@ def _apply(capture: _Capture, healed: dict) -> Optional[_Retry]:
     if not _same_origin(url, capture.url):
         return None  # a URL heal may move the path, never the host: the
                      # retry carries the caller's credentials (CONTRACT §4)
-    headers = {k: v for k, v in capture.headers.items() if k.lower() != "content-length"}
+    # The retry's body is concrete bytes: the client frames it anew, so neither the old
+    # length nor chunked framing may ride along (both at once is a malformed request).
+    headers = {k: v for k, v in capture.headers.items()
+               if k.lower() not in ("content-length", "transfer-encoding")}
     for name, value in (healed.get("headers") or {}).items():
         headers = {k: v for k, v in headers.items() if k.lower() != str(name).lower()}
         if value is not None:
@@ -209,6 +213,9 @@ def _decide(config: Config, api, capture: _Capture, result: Optional[dict]) -> O
         retry = _apply(capture, healed) if healed else None
     except Exception:
         retry = None
+    # A patched path is filtered like any other call: a retry never goes where the lists forbid.
+    if retry is not None and _excluded(config, retry.url):
+        retry = None
     if retry is None:
         _report(api, result, 0, NOT_ATTEMPTED)
         _emit(config, capture, result, None, replay_attempted=False)
@@ -248,9 +255,23 @@ def _rebuild(request, retry: _Retry, mod=httpx):
 
 def install_outbound(config: Config, heal_api: Optional[HealApi] = None,
                      async_heal_api: Optional[AsyncHealApi] = None) -> None:
-    global _installed, _installed_config, _tracker
     if _installed:
         return
+    # Instrumenting must never stop the app: a failure (a malformed proxy variable
+    # breaking client construction, say) undoes what was patched and leaves it running.
+    try:
+        _install(config, heal_api, async_heal_api)
+    except Exception as exc:
+        try:
+            uninstall_outbound()
+        except Exception:
+            pass
+        warnings.warn(f"mnfst: install failed; mnfst is disabled: {type(exc).__name__}", stacklevel=3)
+
+
+def _install(config: Config, heal_api: Optional[HealApi],
+             async_heal_api: Optional[AsyncHealApi]) -> None:
+    global _installed, _installed_config, _tracker
     sync_api = heal_api or HealApi(config)
     async_api = async_heal_api or AsyncHealApi(config)
     _installed = True
